@@ -3,27 +3,7 @@ Option Explicit
 '// useful functions to go along with the cSheetsV4 class for accessing the Sheets API
 
 '//DEMOS
-Private Function getMySheetId() As String
-'// make this into your own sheet id
-'// simplest way to implement in a form would be to make a picker for google drive
-    getMySheetId = "1V54F5b1e1bOcJXJ_McRkpyJ5Dx_ndGnjdiZpBeyA4L0"
-End Function
-'// this is about setting up for OAUTH2
-'// all you have to do is to create a google console developer project
-'// create some credentials of app type other
-'// activeate the sheets api
-'// copy the credentials to the below function (the ones here wont work- they are deactivated)
-'// and run this function once.
-'// you can delete it once you;ve run it - its not needed any more if you successfully go through the google auth process
-Private Function sheetsOnceOff()
-    
-    getGoogled "sheets", , _
-    "109xxfbhq.apps.googleusercontent.com", _
-    "UxxCl"
-    
 
-
-End Function
 '// this wil get the active sheet from google
 '// go can replace the active sheet name with some other sheets, or a list of sheets separated by commas
 Public Sub getThisSheet()
@@ -68,7 +48,7 @@ Public Function putStuffToSheets(id As String, sheetNames As String) As cJobject
 
     Dim names As Variant, i As Long, _
         results As cJobject, sheet As Worksheet, _
-        r As Range, values As Variant, result As cJobject, sheetAccess As cSheetsV4
+        r As range, values As Variant, result As cJobject, sheetAccess As cSheetsV4
     
     names = Split(sheetNames, ",")
     
