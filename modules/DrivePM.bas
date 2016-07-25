@@ -12,18 +12,19 @@ Option Explicit
 '// and run this function once.
 '// you can delete it once you;ve run it - its not needed any more if you successfully go through the google auth process
 
+Const config_txt = "DrivePM.config"
 
 Public Sub RunOnce()
     'your config here
     
-    'SaveConfig "config.txt", "SheetID", "xxx"
-    'SaveConfig "config.txt", "ClientID", "xxxx.apps.googleusercontent.com"
-    'SaveConfig "config.txt", "ClientSecret", "xxx"
+    'SaveConfig config_txt, "SheetID", "xxx"
+    'SaveConfig config_txt, "ClientID", "xxxx.apps.googleusercontent.com"
+    'SaveConfig config_txt, "ClientSecret", "xxx"
     
     Dim ClientID As String
     Dim ClientSecret As String
     
-    If GetConfig("config.txt", "ClientID", ClientID) And GetConfig("config.txt", "ClientSecret", ClientSecret) Then
+    If GetConfig(config_txt, "ClientID", ClientID) And GetConfig(config_txt, "ClientSecret", ClientSecret) Then
         getGoogled "sheets", , ClientID, ClientSecret
     Else
         MsgBox ("failed on getting config for oauth clientid or/and clientsecret")
@@ -32,91 +33,46 @@ Public Sub RunOnce()
     
 End Sub
 
-
-Function getMySheetId() As String
-    Dim SheetID As String
-    If GetConfig("config.txt", "SheetID", SheetID) Then
-        getMySheetId = SheetID
-    Else
-        MsgBox ("failed on getting config for sheetid")
-        Exit Function
-    End If
-End Function
-
-
-
-'// below here are the useful functions you'll need
-Private Function sheetExistsAtGoogle(sheetAccess As cSheetsV4, sheetName As String, Optional complain As Boolean = False) As cJobject
-    Dim theSheet As String, s As String, job As cJobject, results As cJobject, result As cJobject
-    theSheet = LCase(CStr(sheetName))
-    '// get all the sheets at  the google end
-    Set results = sheetAccess.getSheets()
-    If (Not results.child("success").value) Then
-        MsgBox "failed getting sheets meta data " & results.toString("response")
-        Set sheetExistsAtGoogle = Nothing
-        Exit Function
-    End If
-    For Each job In results.child("data").children(1).child("sheets").children
-        s = job.toString("properties.title")
-        If (LCase(s) = theSheet) Then
-            Set sheetExistsAtGoogle = job
-            Exit Function
-        End If
-    Next job
-    ' we need to create it
-      Set result = sheetAccess.insertSheet(sheetName)
-      If (Not result.child("success").value) Then
-          MsgBox "failed inserting sheet " & result.toString("response")
-          Set sheetExistsAtGoogle = Nothing
-          Exit Function
-      Else
-        'check again for sure
-        Set results = sheetAccess.getSheets()
-          For Each job In results.child("data").children(1).child("sheets").children
-              s = job.toString("properties.title")
-              If (LCase(s) = theSheet) Then
-                  Set sheetExistsAtGoogle = job
-                  Exit Function
-              End If
-          Next job
-      End If
-    If (complain) Then
-        MsgBox ("sheet does not exist on Google " & theSheet)
-    End If
-    Set sheetExistsAtGoogle = Nothing
-End Function
-
-
-Private Function putTableToSheets(id As String, table As String, values As Variant) As cJobject
+'/**
+' * put array contents to google sheets
+' * @param {string} [sheetname]
+' * @param {array} the valeus
+' * @return boolean if succes
+'*/
+Private Function putTableToSheets(table As String, values As Variant) As Boolean
     Dim result As cJobject, sheetAccess As cSheetsV4
     '// set up an access object
     Set sheetAccess = New cSheetsV4
-    sheetAccess.setAuthName("sheets").setSheetId (id)
+    sheetAccess.setAuthName("sheets").setSheetId (getMySheetId())
     '// put the sheet data .. will bacth this up later
     ' see if it exists at google
     If Not (sheetExistsAtGoogle(sheetAccess, table) Is Nothing) Then
-
         '// and write it
         Set result = sheetAccess.setValues(values, table, A1Notation(values))
         If (Not result.child("success").value) Then
             MsgBox ("failed on sheets API " + result.child("response").stringify)
+            putTableToSheets = False
+        Else
+            putTableToSheets = True
         End If
+    Else
+        putTableToSheets = False
     End If
-    Set putTableToSheets = result
 End Function
 
 
 '/**
 ' * get the sheet contents from google
-' * @param {string} id the spreadsheet id
-' * @param {string} [sheet]
-' * @return {cjobject} the result
+' * @param {string} [sheetname]
+' * @return {array} the result
 '*/
-Private Function getTableFromSheets(id As String, table As String) As cJobject
+Private Function getTableFromSheets(table As String) As Variant
     Dim result As cJobject, sheetAccess As cSheetsV4
+    Dim d() As Variant
+    Dim values As cJobject, jor As cJobject, joc As cJobject
     '// set up an access object
     Set sheetAccess = New cSheetsV4
-    sheetAccess.setAuthName("sheets").setSheetId (id)
+    sheetAccess.setAuthName("sheets").setSheetId (getMySheetId())
     '// get the data for the sheets that exist or were asked for
     '// see if they exist at google
     If Not (sheetExistsAtGoogle(sheetAccess, table) Is Nothing) Then
@@ -124,45 +80,40 @@ Private Function getTableFromSheets(id As String, table As String) As cJobject
         Set result = sheetAccess.getValues(table)
         If (Not result.child("success").value) Then
             MsgBox ("failed on sheets API " + result.child("response").stringify)
-        End If
-    End If
-    Set getTableFromSheets = result
-End Function
-
-Private Function writeToSheets(data As cJobject)
-    Dim d As Variant, sheet As Worksheet, values As cJobject, jor As cJobject, joc As cJobject
-        '// now write the data
-            Set values = data.children(1).child("values")
+        Else
+            '// now write the data to array
+            Set values = result.child("data").children(1).child("valueRanges").children(1).child("values")
             ReDim d(0 To values.children.Count - 1, 0 To values.children(1).children.Count - 1)
             For Each jor In values.children
+                If jor.children.Count - 1 > UBound(d, 2) Then
+                    ReDim Preserve d(0 To values.children.Count - 1, 0 To jor.children.Count - 1)
+                End If
                 For Each joc In jor.children
                     d(jor.childIndex - 1, joc.childIndex - 1) = joc.value
                 Next joc
             Next jor
-            
-            '// now we just need to write it out
-            Set sheet = ActiveSheet
-            sheet.Cells(1, 1) _
-            .Resize(values.children.Count, values.children(1).children.Count) _
-            .value = d
-End Function ' check if this childExists in current children
+        End If
+    End If
+    getTableFromSheets = d
+End Function
+
+
 
 Public Sub putTable()
-    Dim result As cJobject
-    Set result = putTableToSheets(getMySheetId(), ActiveSheet.NAME, ActiveSheet.UsedRange.value)
-    If (Not result Is Nothing) And (Not result.child("success").value) Then
-        MsgBox ("failed on sheets API " + result.child("response"))
-        Exit Sub
-    End If
+    Dim result As Boolean
+    result = putTableToSheets(ActiveSheet.NAME, ActiveSheet.UsedRange.value)
+
 End Sub
 
 Public Sub getTable()
-    Dim result As cJobject
+    Dim result As Variant
+    Dim sheet As Worksheet
     
-    Set result = getTableFromSheets(getMySheetId(), ActiveSheet.NAME)
-    If (Not result.child("success").value) Then
-        MsgBox ("failed on sheets API " + result.child("response"))
-        Exit Sub
+    result = getTableFromSheets(ActiveSheet.NAME)
+    If UBound(result) > 0 Then
+        '// now we just need to write it out
+        Set sheet = ActiveSheet
+        ActiveSheet.Cells(1, 1).Resize(UBound(result, 1) + 1, UBound(result, 2) + 1).value = result
     End If
-    writeToSheets result.child("data").children(1).child("valueRanges")
+
 End Sub

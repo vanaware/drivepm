@@ -313,6 +313,59 @@ Function Base64Decode(ByVal base64String)
   Base64Decode = sOut
 End Function
 
+Function getMySheetId() As String
+    Dim SheetID As String
+    If GetConfig(config_txt, "SheetID", SheetID) Then
+        getMySheetId = SheetID
+    Else
+        MsgBox ("failed on getting config for sheetid")
+        Exit Function
+    End If
+End Function
+
+
+'// below here are the useful functions you'll need
+Function sheetExistsAtGoogle(sheetAccess As cSheetsV4, sheetName As String, Optional complain As Boolean = False) As cJobject
+    Dim theSheet As String, s As String, job As cJobject, results As cJobject, result As cJobject
+    theSheet = LCase(CStr(sheetName))
+    '// get all the sheets at  the google end
+    Set results = sheetAccess.getSheets()
+    If (Not results.child("success").value) Then
+        MsgBox "failed getting sheets meta data " & results.toString("response")
+        Set sheetExistsAtGoogle = Nothing
+        Exit Function
+    End If
+    For Each job In results.child("data").children(1).child("sheets").children
+        s = job.toString("properties.title")
+        If (LCase(s) = theSheet) Then
+            Set sheetExistsAtGoogle = job
+            Exit Function
+        End If
+    Next job
+    ' we need to create it
+      Set result = sheetAccess.insertSheet(sheetName)
+      If (Not result.child("success").value) Then
+          MsgBox "failed inserting sheet " & result.toString("response")
+          Set sheetExistsAtGoogle = Nothing
+          Exit Function
+      Else
+        'check again for sure
+        Set results = sheetAccess.getSheets()
+          For Each job In results.child("data").children(1).child("sheets").children
+              s = job.toString("properties.title")
+              If (LCase(s) = theSheet) Then
+                  Set sheetExistsAtGoogle = job
+                  Exit Function
+              End If
+          Next job
+      End If
+    If (complain) Then
+        MsgBox ("sheet does not exist on Google " & theSheet)
+    End If
+    Set sheetExistsAtGoogle = Nothing
+End Function
+
+
 'Code bellow from http://peltiertech.com/save-retrieve-information-text-files/
 Function SaveConfig(sFileName As String, sname As String, _
       Optional sValue As String) As Boolean
