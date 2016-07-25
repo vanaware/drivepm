@@ -556,7 +556,8 @@ Public Function recurseSerialize(job As cJobject, Optional soFar As cStringChunk
         If Not job.isVoid() Then
             t.add LCase(job.toString)
         Else
-            t.add "null"
+            't.add "null"
+            t.add quote("")
         End If
     End If
         

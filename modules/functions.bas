@@ -463,5 +463,20 @@ Function fileExists(ByVal FileSpec As String) As Boolean
    End If
 End Function
 
+Function A1Notation(values As Variant) As String
+    A1Notation = Get_Alphabet(LBound(values, 2)) & LBound(values, 1) & ":" & Get_Alphabet(UBound(values, 2)) & UBound(values, 1)
+End Function
 
+'Returns the alphabet associated with the column
+'intNumber: The column number
+'Return Value: Alphabet associated with the column number
+'LINK = http://software-solutions-online.com/retrieving-a-range-of-cells/
+Private Function Get_Alphabet(ByVal intNumber As Integer) As String
+    Dim result As String
+    If intNumber \ 26 > 0 Then
+        result = Get_Alphabet(intNumber \ 26)
+    End If
+    result = result & Strings.Trim(Chr((intNumber Mod 26) + 64))
+    Get_Alphabet = result
+End Function
 

@@ -31,6 +31,7 @@ Public Function getAuthName() As String
 End Function
 Public Function getSheets() As cJobject
     Set getSheets = urlExecute(pSheetId, encodeFields(getSheetDefs()))
+    'Debug.Print (getSheets.stringify)
 End Function
 Public Function insertSheet(sheetName As Variant) As cJobject
     Dim s As String, payload As New cJobject
@@ -46,6 +47,7 @@ Public Function insertSheet(sheetName As Variant) As cJobject
         End With
     End With
     Set insertSheet = urlExecute(pSheetId & ":batchUpdate", encodeFields(getInsertSheetDefs()), "POST", payload)
+    'Debug.Print (payload.stringify)
     payload.tearDown
 
 End Function
@@ -53,6 +55,7 @@ Public Function getValues(ranges As String) As cJobject
     Set getValues = urlExecute(pSheetId & "/values:batchGet", _
       getValuesParams & "&" & getRangesParams(ranges) & "&" & _
       encodeFields(getValuesDefs()))
+    'Debug.Print (getValues.stringify)
 End Function
 Public Function setValues(values As Variant, sheetName As String, rangeA1 As String) As cJobject
     Dim payload As cJobject
@@ -64,6 +67,7 @@ Public Function setValues(values As Variant, sheetName As String, rangeA1 As Str
         encodeFields("responses"), "POST", _
         payload _
     )
+    'Debug.Print (payload.stringify)
     '// clean
     payload.tearDown
 End Function
@@ -85,7 +89,7 @@ Public Function getValuesPayload(values As Variant, sheetName As String, rangeA1
             End With
         End With
     End With
-    Debug.Print (payload.stringify)
+    'Debug.Print (payload.stringify)
     Set getValuesPayload = payload
 End Function
 Private Function getSheetDefs() As String
@@ -130,7 +134,7 @@ End Function
 '  * @param {string} urlTail the url appendage
 '  * @param {string} [params] the params
 '  * @param {string} [method=GET] what to do
-'  * @param {cJobject} [payload] teh payload
+'  * @param {cJobject} [payload] the payload
 '  * @return {cjobject} a standard response object
 '  */
 Private Function urlExecute(urlTail As String, _
@@ -140,10 +144,19 @@ Private Function urlExecute(urlTail As String, _
 
     Dim url As String, body As String, ob As cJobject, paramstring As New cStringChunker
     Dim result As New cJobject, googled As cOauth2
+    
+    'Debug.Print "URL_EXECUTE VARS"
+    'Debug.Print "URLTAIL= " & urlTail
+    'Debug.Print "PARAMS= " & params
+    'Debug.Print "METHOD= " & method
+    
     body = ""
     If (isSomething(payload)) Then
         body = payload.stringify
     End If
+    
+    'Debug.Print "PAYLOAD(body)= " & (body)
+            
     Set googled = getGoogled(pAuthName)
     
     paramstring.add("?key=").add googled.apikey
@@ -152,6 +165,9 @@ Private Function urlExecute(urlTail As String, _
     End If
     
     url = pRoot & urlTail & paramstring.toString
+    'Debug.Print "FINALURL= " & url
+    'Debug.Print "AUTHHEADER= " & googled.authHeader
+    
     If (method <> "GET") Then
         pBrowser.httpPost url, body, True, googled.authHeader, , method
     Else
@@ -170,6 +186,8 @@ Private Function urlExecute(urlTail As String, _
     End If
     
     Set urlExecute = result
+    'Debug.Print "URL EXECUTE RESULT"
+    'Debug.Print (result.stringify)
     
 End Function
 

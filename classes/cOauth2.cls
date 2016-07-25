@@ -24,8 +24,8 @@ Private pMessage As String
 
 Public Function googleAuth(scopeEntry As String, _
         Optional replacementConsole As cJobject = Nothing, _
-        Optional clientID As String = vbNullString, _
-        Optional clientSecret As String = vbNullString, _
+        Optional ClientID As String = vbNullString, _
+        Optional ClientSecret As String = vbNullString, _
         Optional complain As Boolean = True, _
         Optional cloneFromScopeEntry As String = vbNullString, _
         Optional apikey As String = vbNullString) As cOauth2
@@ -57,7 +57,7 @@ Public Function googleAuth(scopeEntry As String, _
         Set clonePackage = getRegistryPackage(aKey, "scope_" & cloneFromScopeEntry)
     End If
     
-    If (clientID <> vbNullString Or clientSecret <> vbNullString Or Not replacementConsole Is Nothing _
+    If (ClientID <> vbNullString Or ClientSecret <> vbNullString Or Not replacementConsole Is Nothing _
         Or Not clonePackage Is Nothing) Then
         ' need a refresh
         If (clonePackage Is Nothing) Then
@@ -69,8 +69,8 @@ Public Function googleAuth(scopeEntry As String, _
         End If
         ' use replacement package and add any passwords passed over (they may already be in the package)
         With pPackage.child("parameters")
-            If clientSecret <> vbNullString Then .add "client_secret", clientSecret
-            If clientID <> vbNullString Then .add "client_id", clientID
+            If ClientSecret <> vbNullString Then .add "client_secret", ClientSecret
+            If ClientID <> vbNullString Then .add "client_id", ClientID
             .add "authFlavor", aKey
             .add "scopeEntry", sKey
         End With
@@ -293,10 +293,10 @@ End Function
 '" ---- registry -----
 '" in registry entries, the values are encrypted useing the salt
 '" the structure is
-'" xLiberation/googleAuth/scope - json pPackage values
+'" DrivePM/googleAuth/scope - json pPackage values
 Private Function getRegistryPackage(authFlavor As String, scopeEntry As String) As cJobject
     Dim s As String
-    s = GetSetting("xLiberation", _
+    s = GetSetting("DrivePM", _
             authFlavor, _
             scopeEntry)
     
@@ -305,7 +305,7 @@ End Function
 Private Function setRegistryPackage() As cJobject
     Dim s As String
     s = JSONStringify(pPackage)
-    SaveSetting "xLiberation", _
+    SaveSetting "DrivePM", _
             getItemValue("parameters.authFlavor"), _
             getItemValue("parameters.scopeEntry"), _
             encrypt(s)
@@ -448,9 +448,11 @@ Public Function skeletonPackage() As cJobject
 End Function
 
 
+
+'CHANGE IT
 Private Sub Class_Initialize()
     Set pDialog = describeDialog
-    pSalt = "xLiberation"
+    pSalt = "DrivePM"
 End Sub
 
 
