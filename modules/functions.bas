@@ -37,6 +37,8 @@ Private Declare Function WideCharToMultiByte Lib "kernel32" ( _
 
 Private Const CP_UTF8 = 65001
 Public Const cFailedtoGetHandle = -1
+Public Const config_txt = "DrivePM.config"
+
 
 Public Function getGoogled(scope As String, _
                                 Optional replacementpackage As cJobject = Nothing, _
@@ -166,6 +168,19 @@ End Function
 
 Public Function isSomething(o As Object) As Boolean
     isSomething = Not o Is Nothing
+End Function
+
+Public Function makeKey(v As Variant) As String
+    makeKey = LCase(Trim(CStr(v)))
+End Function
+
+Public Function compareAsKey(a As Variant, b As Variant, Optional asKey As Boolean = True) As Boolean
+    If (asKey And TypeName(a) = "String" And TypeName(b) = "String") Then
+        compareAsKey = (makeKey(a) = makeKey(b))
+    Else
+        compareAsKey = (a = b)
+    
+    End If
 End Function
 
 ' The below is taken from http://stackoverflow.com/questions/496751/base64-encode-string-in-vbscript

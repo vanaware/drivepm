@@ -13,6 +13,7 @@ Private pAccessToken As String
 Private pBrowser As cBrowser
 Private pRoot As String
 Private pAuthName As String
+Private Tables As cJobject
 
 Public Function setSheetId(id) As cSheetsV4
     pSheetId = id
@@ -33,6 +34,34 @@ Public Function getSheets() As cJobject
     Set getSheets = urlExecute(pSheetId, encodeFields(getSheetDefs()))
     'Debug.Print (getSheets.stringify)
 End Function
+Public Function sheetExists(sheetName As String) As Boolean
+    Dim theSheet As String, s As String, job As cJobject, results As cJobject
+    theSheet = LCase(CStr(sheetName))
+    '// get all the sheets at  the google end
+    Set results = getSheets()
+    If (Not results.child("success").value) Then
+        sheetExists = False
+        Exit Function
+    End If
+    For Each job In results.child("data").children(1).child("sheets").children
+        s = job.toString("properties.title")
+        If (LCase(s) = theSheet) Then
+            sheetExists = True
+            Exit Function
+        End If
+    Next job
+    sheetExists = False
+End Function
+Public Sub insertSheets()
+    Dim job As cJobject, tablename As String, results As cJobject
+    'Add Sheet at Google if not exists
+    For Each job In Tables.children
+        tablename = job.child("range").value
+        If Not sheetExists(tablename) Then
+            Set results = insertSheet(tablename)
+        End If
+    Next job
+End Sub
 Public Function insertSheet(sheetName As Variant) As cJobject
     Dim s As String, payload As New cJobject
     s = CStr(sheetName)
@@ -49,8 +78,92 @@ Public Function insertSheet(sheetName As Variant) As cJobject
     Set insertSheet = urlExecute(pSheetId & ":batchUpdate", encodeFields(getInsertSheetDefs()), "POST", payload)
     'Debug.Print (payload.stringify)
     payload.tearDown
-
 End Function
+
+Public Function addTable(name As String) As cJobject
+    With Tables.add
+        .add "range", name
+        .add("values").addArray
+    End With
+    Set addTable = getTable(name)
+End Function
+
+Public Sub fixTablesName()
+    Dim job As cJobject, newvalue As String, start As Long
+    'Delete everything after ! sign
+    For Each job In Tables.children
+        newvalue = job.child("range").value
+        start = InStr(newvalue, "!")
+        If start > 0 Then
+            newvalue = Left(newvalue, start - 1)
+            job.child("range").value = newvalue
+        End If
+    Next job
+End Sub
+
+Public Function getTable(table As String) As cJobject
+    Set getTable = Tables.findInArray("range", table).parent.child("values")
+End Function
+
+Public Function removeTable(table As String) As cJobject
+    Set removeTable = Tables.findInArray("range", table).parent.remove
+End Function
+
+Public Function getTables() As cJobject
+    Set getTables = Tables
+End Function
+
+Public Function setTables(cJob As cJobject) As cSheetsV4
+    Set Tables = cJob
+    Set setTables = Me
+End Function
+
+Public Function backupTables() As cJobject
+    Dim payload As New cJobject
+    ' add missing sheets
+    insertSheets
+    '// append tables to sheets
+    With payload.Init(Nothing)
+        .add "valueInputOption", "USER_ENTERED"
+        With .add("data").addArray
+            .arrayAppend Tables
+        End With
+    End With
+    ''// do the api call
+    Set backupTables = urlExecute(pSheetId & "/values:batchUpdate", _
+        encodeFields("responses"), "POST", payload)
+    'Debug.Print (payload.stringify)
+    '// clean
+    payload.tearDown
+End Function
+
+Public Function restoreTables() As cJobject
+    Dim ranges As cStringChunker, job As cJobject, results As cJobject
+    Dim joc As cJobject, result As cJobject
+    
+    '// get all the sheets at  the google end
+    Set results = getSheets()
+    If (Not results.child("success").value) Then
+        Exit Function
+    End If
+
+    Set ranges = New cStringChunker
+    For Each job In results.child("data").children(1).child("sheets").children
+        ranges.add(job.toString("properties.title")).add (",")
+    Next job
+    Set result = getValues(ranges.chopWhile(",").toString)
+    'Debug.Print result.stringify
+    Set Tables = New cJobject
+    With Tables.Init(Nothing).addArray
+        For Each joc In result.child("data").children(1).child("valueRanges").children
+            'Debug.Print joc.stringify
+            .append joc
+        Next joc
+    End With
+    fixTablesName
+    Set restoreTables = result
+End Function
+
 Public Function getValues(ranges As String) As cJobject
     Set getValues = urlExecute(pSheetId & "/values:batchGet", _
       getValuesParams & "&" & getRangesParams(ranges) & "&" & _
@@ -198,5 +311,9 @@ Private Sub Class_Initialize()
     ' default url for sheets api
     pRoot = "https://sheets.googleapis.com/v4/spreadsheets/"
     Set pBrowser = New cBrowser
+    Set Tables = New cJobject
+    
+    Tables.Init(Nothing).addArray
+    
 End Sub
 
