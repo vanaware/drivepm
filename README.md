@@ -28,11 +28,12 @@ How to use
 
 + open project file with macros enabled and at VBA for application references add these: Microsoft Internet Controls, Microsoft XML
 + add classes: cBrowser, cJobject, cOauth2, cSheetsV4 and cStringChunker
-+ add modules: oauth, usefulcJobject, usefulSheetsV4Api, usefulStuff
++ add modules: functions, drivEPM
 + config a project at google developer console and create oauth client_id and client_secret
-+ setup VBA procedure sheetsOnceOff at usefulSheetsV4Api with oauth client_id and client_secret
-+ setup VBA procedure getMySheetId at usefulSheetsV4Api with id of your google sheet to serve as database
++ setup VBA procedure RunOnce at drivEPM module with SheetID, ClientID, ClientSecret and uncomment these lines to run at least once
 
 TODO: write more stuff here
 
-
+Wiki
+------ 
+Take a look at our wiki at https://github.com/vanaware/drivepm/wiki

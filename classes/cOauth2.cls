@@ -179,7 +179,7 @@ Private Function getToken(Optional phase As String = "authorization_code") As cO
                 .add "deniedCode", pCb.status
 
             Else
-                Set job = JSONParse(pCb.Text)
+                Set job = JSONParse(pCb.text)
 
                 For Each joc In job.children
                     .add joc.Key, joc.value

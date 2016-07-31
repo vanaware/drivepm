@@ -88,18 +88,15 @@ Public Function addTable(name As String) As cJobject
     Set addTable = getTable(name)
 End Function
 
-Public Sub fixTablesName()
-    Dim job As cJobject, newvalue As String, start As Long
-    'Delete everything after ! sign
-    For Each job In Tables.children
-        newvalue = job.child("range").value
-        start = InStr(newvalue, "!")
-        If start > 0 Then
-            newvalue = Left(newvalue, start - 1)
-            job.child("range").value = newvalue
-        End If
-    Next job
-End Sub
+Public Function tableExists(table As String) As Boolean
+    Dim cJob As New cJobject
+    On Error GoTo errorHandler
+    Set cJob = Tables.findInArray("range", table).parent
+    tableExists = isSomething(cJob)
+    Exit Function
+errorHandler:
+    tableExists = False
+End Function
 
 Public Function getTable(table As String) As cJobject
     Set getTable = Tables.findInArray("range", table).parent.child("values")
@@ -124,7 +121,8 @@ Public Function backupTables() As cJobject
     insertSheets
     '// append tables to sheets
     With payload.Init(Nothing)
-        .add "valueInputOption", "USER_ENTERED"
+        .add "valueInputOption", "RAW"
+        '.add "valueInputOption", "USER_ENTERED"
         With .add("data").addArray
             .arrayAppend Tables
         End With
@@ -164,31 +162,43 @@ Public Function restoreTables() As cJobject
     Set restoreTables = result
 End Function
 
+' Sometimes result comes with range incluing A1 notation cells range and we want just sheet name there.
+Public Sub fixTablesName()
+    Dim job As cJobject, newvalue As String, start As Long
+    'Delete everything after ! sign
+    For Each job In Tables.children
+        newvalue = job.child("range").value
+        start = InStr(newvalue, "!")
+        If start > 0 Then
+            newvalue = Left(newvalue, start - 1)
+            job.child("range").value = newvalue
+        End If
+    Next job
+End Sub
+
 Public Function getValues(ranges As String) As cJobject
     Set getValues = urlExecute(pSheetId & "/values:batchGet", _
-      getValuesParams & "&" & getRangesParams(ranges) & "&" & _
-      encodeFields(getValuesDefs()))
+      getValuesParams & "&" & getRangesParams(ranges) & "&" & encodeFields(getValuesDefs()))
     'Debug.Print (getValues.stringify)
 End Function
+
 Public Function setValues(values As Variant, sheetName As String, rangeA1 As String) As cJobject
     Dim payload As cJobject
     '// convert array to object
     Set payload = getValuesPayload(values, sheetName, rangeA1)
-    
     ''// do the api call
-    Set setValues = urlExecute(pSheetId & "/values:batchUpdate", _
-        encodeFields("responses"), "POST", _
-        payload _
-    )
+    Set setValues = urlExecute(pSheetId & "/values:batchUpdate", encodeFields("responses"), "POST", payload)
     'Debug.Print (payload.stringify)
     '// clean
     payload.tearDown
 End Function
+
 Public Function getValuesPayload(values As Variant, sheetName As String, rangeA1 As String) As cJobject
     Dim i As Long, j As Long, payload As New cJobject
     ' only using a:z for now TODO.. make it more specific
     With payload.Init(Nothing)
-        .add "valueInputOption", "USER_ENTERED"
+        '.add "valueInputOption", "USER_ENTERED"
+        .add "valueInputOption", "RAW"
         With .add("data").addArray.add
             .add "range", sheetName & "!" & Replace(rangeA1, "$", "")
             With .add("values").addArray
@@ -205,26 +215,31 @@ Public Function getValuesPayload(values As Variant, sheetName As String, rangeA1
     'Debug.Print (payload.stringify)
     Set getValuesPayload = payload
 End Function
+
 Private Function getSheetDefs() As String
     getSheetDefs = "sheets(properties(sheetId,title))"
 End Function
+
 Private Function getInsertSheetDefs() As String
     getInsertSheetDefs = "replies(addSheet)"
 End Function
+
 Private Function getValuesDefs() As String
     getValuesDefs = "valueRanges(range,values)"
 End Function
+
 Private Function getValuesParams() As String
-    getValuesParams = "dateTimeRenderOptions=SERIAL_NUMBER&valueRenderOption=FORMATTED_VALUE"
+    'getValuesParams = "dateTimeRenderOptions=SERIAL_NUMBER&valueRenderOption=FORMATTED_VALUE"
+    getValuesParams = "dateTimeRenderOptions=SERIAL_NUMBER&valueRenderOption=UNFORMATTED_VALUE"
 End Function
-Private Function getRangesParams(ranges) As String
+
+Private Function getRangesParams(ranges As String) As String
     Dim a As Variant, i As Long, c As New cStringChunker
     a = Split(ranges, ",")
     For i = LBound(a) To UBound(a)
         c.add("ranges=").uri(CStr(a(i))).add "&"
     Next i
     getRangesParams = c.chopWhile("&").toString
-    
 End Function
 
 '/**
@@ -287,10 +302,10 @@ Private Function urlExecute(urlTail As String, _
         pBrowser.httpGET url, , , , , googled.authHeader
     End If
     
-    result.Init(Nothing).add "response", pBrowser.Text
+    result.Init(Nothing).add "response", pBrowser.text
     
     If (pBrowser.isOk()) Then
-        Set ob = JSONParse(pBrowser.Text)
+        Set ob = JSONParse(pBrowser.text)
         result.add("data").attach ob
         result.add "success", ob.childExists("error") Is Nothing
         
@@ -304,9 +319,6 @@ Private Function urlExecute(urlTail As String, _
     
 End Function
 
- 
-  
-
 Private Sub Class_Initialize()
     ' default url for sheets api
     pRoot = "https://sheets.googleapis.com/v4/spreadsheets/"
@@ -317,3 +329,144 @@ Private Sub Class_Initialize()
     
 End Sub
 
+
+
+Public Sub setTask(MyProject As Project, TaskID As String)
+    Const table = "Tasks"
+    Dim Cols As New cJobject
+    Dim MyTask As Task
+    Dim Col As cJobject
+    Set Cols = getTaskCols
+    
+    If Not tableExists(table) Then
+        With addTable(table).add.addArray
+            For Each Col In Cols.children
+                .add , Col.Key
+            Next
+        End With
+    End If
+    Set MyTask = getTaskbyID(MyProject, TaskID)
+    With getTable(table).add.addArray
+        For Each Col In Cols.children
+            .add , getTaskField(MyTask, Col.value)
+        Next
+    End With
+End Sub
+
+Public Sub setProject(MyProject As Project)
+    Const table = "Project"
+    
+    If Not tableExists(table) Then
+        With addTable(table).add.addArray
+            .add , "Property"
+            .add , "Value"
+        End With
+    End If
+    With getTable(table)
+        With .add.addArray
+            .add , "ID"
+            .add , MyProject.id
+        End With
+        With .add.addArray
+            .add , "UniqueID"
+            .add , MyProject.UniqueID
+        End With
+        With .add.addArray
+            .add , "FullName"
+            .add , MyProject.FullName
+        End With
+        With .add.addArray
+            .add , "Name"
+            .add , MyProject.name
+        End With
+        With .add.addArray
+            .add , "Path"
+            .add , MyProject.Path
+        End With
+        With .add.addArray
+            .add , "CodeName"
+            .add , MyProject.CodeName
+        End With
+        With .add.addArray
+            .add , "ProjectNotes"
+            .add , MyProject.ProjectNotes
+        End With
+        With .add.addArray
+            .add , "StatusDate"
+            .add , Date2Serial(MyProject.StatusDate)
+        End With
+        With .add.addArray
+            .add , "ProjectStart"
+            .add , Date2Serial(MyProject.ProjectStart)
+        End With
+        With .add.addArray
+            .add , "CurrentDate"
+            .add , Date2Serial(MyProject.CurrentDate)
+        End With
+        With .add.addArray
+            .add , "CreationDate"
+            .add , Date2Serial(MyProject.CreationDate)
+        End With
+        With .add.addArray
+            .add , "ProjectFinish"
+            .add , Date2Serial(MyProject.ProjectFinish)
+        End With
+        With .add.addArray
+            .add , "RevisionNumber"
+            .add , MyProject.RevisionNumber 'read only
+        End With
+        With .add.addArray
+            .add , "DisplayProjectSummaryTask"
+            .add , MyProject.DisplayProjectSummaryTask
+        End With
+        With .add.addArray
+            .add , "YearLabelDisplay"
+            .add , MyProject.YearLabelDisplay
+        End With
+        With .add.addArray
+            .add , "MonthLabelDisplay"
+            .add , MyProject.MonthLabelDisplay
+        End With
+        With .add.addArray
+            .add , "WeekLabelDisplay"
+            .add , MyProject.WeekLabelDisplay
+        End With
+        With .add.addArray
+            .add , "DayLabelDisplay"
+            .add , MyProject.DayLabelDisplay
+        End With
+        With .add.addArray
+            .add , "HourLabelDisplay"
+            .add , MyProject.HourLabelDisplay
+        End With
+        With .add.addArray
+            .add , "MinuteLabelDisplay"
+            .add , MyProject.MinuteLabelDisplay
+        End With
+
+        With .add.addArray
+            .add , "WBSCodeGenerate"
+            .add , MyProject.WBSCodeGenerate
+        End With
+        With .add.addArray
+            .add , "WBSVerifyUniqueness"
+            .add , MyProject.WBSVerifyUniqueness
+        End With
+        With .add.addArray
+            .add , "DaysPerMonth"
+            .add , MyProject.DaysPerMonth
+        End With
+        With .add.addArray
+            .add , "HoursPerDay"
+            .add , MyProject.HoursPerDay
+        End With
+        With .add.addArray
+            .add , "HoursPerWeek"
+            .add , MyProject.HoursPerWeek
+        End With
+        With .add.addArray
+            .add , "ScheduleFromStart"
+            .add , MyProject.ScheduleFromStart
+        End With
+    End With
+End Sub

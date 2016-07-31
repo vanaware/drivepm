@@ -91,3 +91,21 @@ Public Sub teste()
     Debug.Print sheetAccess.getTables.stringify
 
 End Sub
+
+Sub TesteTask()
+    Dim MyTask As Task
+    Dim sheetAccess As New cSheetsV4
+    Dim result As New cJobject
+    
+    sheetAccess.setAuthName("sheets").setSheetId (getMySheetId())
+    sheetAccess.setProject ActiveProject
+    
+    sheetAccess.setTask ActiveProject, getTaskID(ActiveProject.ProjectSummaryTask)
+    For Each MyTask In ActiveProject.Tasks
+        If isSomething(MyTask) Then sheetAccess.setTask ActiveProject, getTaskID(MyTask)
+    Next
+    
+    'Debug.Print sheetAccess.getTables.stringify
+    Set result = sheetAccess.backupTables()
+        
+End Sub

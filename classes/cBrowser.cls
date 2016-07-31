@@ -55,8 +55,8 @@ End Property
 Public Property Get deniedCode() As String
         deniedCode = pDeniedCode
 End Property
-Public Property Get Text() As String
-        Text = pText
+Public Property Get text() As String
+        text = pText
 End Property
 Public Property Get url() As String
     url = pHtml
@@ -267,16 +267,16 @@ Private Sub pIeOB_OnQuit()
 End Sub
 
 
-Private Sub pIeOB_TitleChange(ByVal Text As String)
+Private Sub pIeOB_TitleChange(ByVal text As String)
     Dim s As String, f As String
     f = "Denied error="
     s = "Success code="
     If (pLockdown) Then
-        If (Left(Text, Len(s)) = s) Then
-            pSuccessCode = Mid(Text, Len(s) + 1)
+        If (Left(text, Len(s)) = s) Then
+            pSuccessCode = Mid(text, Len(s) + 1)
             pLockActive = False
-        ElseIf (Left(Text, Len(f)) = f) Then
-            pDeniedCode = Mid(Text, Len(f) + 1)
+        ElseIf (Left(text, Len(f)) = f) Then
+            pDeniedCode = Mid(text, Len(f) + 1)
             pLockActive = False
         End If
         If (Not pLockActive) Then

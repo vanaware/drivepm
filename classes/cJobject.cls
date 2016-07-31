@@ -59,9 +59,11 @@ Public Enum eTypeofColumn
     eTCunknown
 End Enum
 Private pbyKey As String
+
 Public Property Get backtrack() As cJobject
     Set backtrack = pBacktrack
 End Property
+
 Public Property Set backtrack(back As cJobject)
     Set pBacktrack = back
 End Property
@@ -69,30 +71,38 @@ End Property
 Public Property Get self() As cJobject
     Set self = Me
 End Property
+
 Public Property Get isValid() As Boolean
     isValid = pValid
 End Property
+
 Public Property Let setValid(good As Boolean)
     pValid = good
 End Property
+
 Public Property Get jString() As String
     jString = pJstring
 End Property
+
 Public Property Get fake() As Boolean
     fake = pFake
     If Not pParent Is Nothing Then
         fake = fake And pParent.isArrayRoot
     End If
 End Property
+
 Public Property Get childIndex() As Long
     childIndex = pIndex
 End Property
+
 Public Property Let childIndex(p As Long)
     pIndex = p
 End Property
+
 Public Property Get isArrayRoot() As Boolean
     isArrayRoot = pisArrayRoot
 End Property
+
 Public Property Get isArrayMember() As Boolean
     If Not pParent Is Nothing Then
         isArrayMember = pParent.isArrayRoot
@@ -100,6 +110,7 @@ Public Property Get isArrayMember() As Boolean
         isArrayMember = False
     End If
 End Property
+
 Public Property Let isArrayRoot(p As Boolean)
     pisArrayRoot = p
 End Property
@@ -107,15 +118,19 @@ End Property
 Public Property Get parent() As cJobject
     Set parent = pParent
 End Property
+
 Public Property Set parent(p As cJobject)
     Set pParent = p
 End Property
+
 Public Property Get isRoot() As Boolean
     isRoot = (root Is Me)
 End Property
+
 Public Sub clearParent()
     Set pParent = Nothing
 End Sub
+
 Public Property Get root() As cJobject
     Dim jo As cJobject
     ' the root is the object with no parent
@@ -125,9 +140,11 @@ Public Property Get root() As cJobject
     Wend
     Set root = jo
 End Property
+
 Public Property Get Key() As String
     Key = pkey
 End Property
+
 Public Property Get value() As Variant
     If IsObject(pValue) Then
         Set value = pValue
@@ -135,6 +152,7 @@ Public Property Get value() As Variant
         value = pValue
     End If
 End Property
+
 Public Function setValue(p As Variant) As cJobject
     If IsObject(p) Then
         Set pValue = p
@@ -143,6 +161,7 @@ Public Function setValue(p As Variant) As cJobject
     End If
     Set setValue = Me
 End Function
+
 Public Function isVoid(Optional childName As String = vbNullString) As Boolean
     If childName = vbNullString Then
         If isObjValue Then
@@ -154,6 +173,7 @@ Public Function isVoid(Optional childName As String = vbNullString) As Boolean
         isVoid = child(childName).isVoid
     End If
 End Function
+
 Public Function isObjValue(Optional childName As String = vbNullString) As Boolean
     If childName = vbNullString Then
         isObjValue = IsObject(value)
@@ -161,6 +181,7 @@ Public Function isObjValue(Optional childName As String = vbNullString) As Boole
         isObjValue = child(childName).isObjValue
     End If
 End Function
+
 Public Function cValue(Optional childName As String = vbNullString) As Variant
     If childName = vbNullString Then
         cValue = value
@@ -168,6 +189,7 @@ Public Function cValue(Optional childName As String = vbNullString) As Variant
         cValue = child(childName).value
     End If
 End Function
+
 Public Function kids(Optional childName As String = vbNullString) As Collection
     If (childName = vbNullString) Then
         Set kids = children
@@ -175,13 +197,21 @@ Public Function kids(Optional childName As String = vbNullString) As Collection
         Set kids = child(childName).children
     End If
 End Function
+
 Public Function toString(Optional childName As String = vbNullString) As String
+    Dim value As Variant
     If isObjValue Then
         toString = "object:" + TypeName(getObject())
     Else
-        toString = CStr(cValue(childName))
+        value = cValue(childName)
+        If VarType(value) <> vbDouble And VarType(value) <> vbSingle And VarType(value) <> vbCurrency Then
+            toString = CStr(value)
+        Else
+            toString = Replace(CStr(value), DecimalSeparator, ".")
+        End If
     End If
 End Function
+
 Public Property Get getObject(Optional childName As String = vbNullString) As Object
     Dim t As cJobject
     If childName <> vbNullString Then
@@ -189,10 +219,9 @@ Public Property Get getObject(Optional childName As String = vbNullString) As Ob
     Else
         Set t = Me
     End If
-    
     Set getObject = t.value
-   
 End Property
+
 Public Property Let value(p As Variant)
     pValue = p
 End Property
@@ -200,20 +229,22 @@ End Property
 Public Property Get children() As Collection
     Set children = pChildren
 End Property
+
 Public Property Set children(p As Collection)
     Set pChildren = p
 End Property
+
 Public Property Get hasChildren() As Boolean
     hasChildren = False
     If Not pChildren Is Nothing Then
         hasChildren = (pChildren.Count > 0)
     End If
 End Property
+
 Public Function deleteChild(childName As String) As cJobject
     ' this deletes a child from the children collection
     Dim job As cJobject, Target As cJobject
     Set Target = childExists(childName)
-    
     If (Not Target Is Nothing) Then
         children.remove Target.childIndex
         For Each job In children
@@ -222,10 +253,10 @@ Public Function deleteChild(childName As String) As cJobject
             End If
         Next job
         Target.tearDown
-       
     End If
     Set deleteChild = Me
 End Function
+
 Public Function valueIndex(v As Variant) As Long
     ' check to see if h is in the cj array
     Dim cj As cJobject
@@ -238,14 +269,12 @@ Public Function valueIndex(v As Variant) As Long
             End If
         End If
     Next cj
-    
 End Function
 
 Public Function toTreeView(tr As Object, Optional bEnableCheckBoxes As Boolean = False) As Object
     ' this populates a treeview with a cJobject
     tr.CheckBoxes = bEnableCheckBoxes
     Set toTreeView = treeViewPopulate(tr, Me)
-    
 End Function
 
 Private Function treeViewPopulate(tr As Object, cj As cJobject, Optional parent As cJobject = Nothing)
@@ -265,20 +294,18 @@ Private Function treeViewPopulate(tr As Object, cj As cJobject, Optional parent 
         treeViewPopulate tr, c, cj
     Next c
     Set treeViewPopulate = tr
-    
 End Function
+
 Public Function Init(p As cJobject, Optional k As String = cNull, Optional v As Variant = Empty) As cJobject
     Set pParent = p
     Set pBacktrack = p
     pbyKey = "sortKey"
-    
     pFake = (k = cNull)
     If pFake Then
         pkey = CStr(pIndex)
     Else
         pkey = k
     End If
-
     If Not pParent Is Nothing Then
         If Not child(pkey) Is Nothing Then
             MsgBox ("Programming error " & pkey & " is a duplicate object")
@@ -291,14 +318,11 @@ Public Function Init(p As cJobject, Optional k As String = cNull, Optional v As 
             pParent.children.add Me, pkey
         End If
     End If
-
     Set Init = setValue(v)
-
 End Function
 
 Public Function child(s As String) As cJobject
     Dim aString As Variant, n As Long, jo As cJobject, jc  As cJobject
-    
     If Len(s) > 0 Then
         aString = Split(s, ".")
         Set jo = Me
@@ -310,21 +334,18 @@ Public Function child(s As String) As cJobject
         Next n
     End If
     Set child = jo
-
 End Function
+
 Public Function insert(Optional s As String = cNull, Optional v As Variant = Empty) As cJobject
     Dim joNew As cJobject, sk As String
     Set joNew = childExists(s)
-
     If joNew Is Nothing Then
         ' if its an array, use the child index as the name if there is no name given
         If pisArrayRoot And s = cNull Then
             sk = cNull
-
         Else
             sk = s
         End If
-        
         Set joNew = New cJobject
         joNew.Init Me, sk, v
     Else
@@ -332,6 +353,7 @@ Public Function insert(Optional s As String = cNull, Optional v As Variant = Emp
     End If
     Set insert = joNew
 End Function
+
 Public Function add(Optional k As String = cNull, Optional v As Variant = Empty) As cJobject
     Dim aString As Variant, n As Long, jo As cJobject, jc  As cJobject
     aString = Split(k, ".")
@@ -343,10 +365,12 @@ Public Function add(Optional k As String = cNull, Optional v As Variant = Empty)
     Next n
     Set add = jo
 End Function
+
 Public Function addArray() As cJobject
     pisArrayRoot = True
     Set addArray = Me
 End Function
+
 ' check if this childExists in current children
 Public Function childExists(s As String) As cJobject
     On Error GoTo handle
@@ -355,11 +379,11 @@ Public Function childExists(s As String) As cJobject
 handle:
     Set childExists = Nothing
 End Function
+
 Private Function unSplitToString(a As Variant, delim As String, _
     Optional startAt As Long = -999, Optional howMany As Long = -999, _
     Optional startAtEnd As Boolean = False) As String
     Dim s As String, c As cStringChunker, i As Long
-
     ' sort out possible boundaries
     If startAt = -999 Then startAt = LBound(a)
     If howMany = -999 Then howMany = UBound(a) - startAt + 1
@@ -377,6 +401,7 @@ Private Function unSplitToString(a As Variant, delim As String, _
         Set c = Nothing
     End If
     End Function
+    
 Public Function findInArray(prop As String, val As Variant, Optional asKey As Boolean = True) As cJobject
     ' find a particular prop value in an array
     Dim cj As cJobject, p As cJobject
@@ -391,6 +416,7 @@ Public Function findInArray(prop As String, val As Variant, Optional asKey As Bo
             End If
         End If
     Next cj
+    'Set cj = Nothing
     Set findInArray = Nothing
 End Function
 
@@ -398,13 +424,11 @@ Public Function find(s As String) As cJobject
     Dim jo As cJobject, f As cJobject, k As String, fk As String, possible As Boolean
     k = makeKey(s)
     fk = makeKey(fullKey(False))
-    
     ' need to deal with find("x.y.z") as well as simple find("x")
     Dim kk As String, a As Variant, b As Variant
     b = Split(fk, ".")
     a = Split(k, ".")
     kk = unSplitToString(b, ".", , arrayLength(a), True)
-    
     'now the fullkey is the same number of items as the key to compare it against
     If kk = k Then
         Set f = Me
@@ -416,6 +440,7 @@ Public Function find(s As String) As cJobject
     End If
     Set find = f
 End Function
+
 Public Function convertToArray() As cJobject
     ' here's where have something like {x:{a:'x',b:'y'}} and we need to make {x:[{a:'x',b:'y'}]}
     Dim kids As Collection, newParent As cJobject, job As cJobject, newRoot As cJobject, i As Long
@@ -455,9 +480,8 @@ Public Function convertToArray() As cJobject
         
         Set convertToArray = newRoot
     End If
-
-    
 End Function
+
 Public Function fullKey(Optional includeRoot As Boolean = True) As String
     ' reconstruct full key to parent
     Dim s As String, jo As cJobject
@@ -468,16 +492,13 @@ Public Function fullKey(Optional includeRoot As Boolean = True) As String
     Wend
     If Len(s) > 0 Then s = Left(s, Len(s) - 1)
     fullKey = s
-    
 End Function
 
 Public Function findByValue(x As Variant) As cJobject
     Dim job As cJobject, result As cJobject
-    
     If Not isObjValue() And value = x Then
         Set findByValue = Me
         Exit Function
-    
     Else
         For Each job In children
             Set result = job.findByValue(x)
@@ -487,29 +508,29 @@ Public Function findByValue(x As Variant) As cJobject
             End If
         Next job
     End If
-    
 End Function
+
 Public Function hasKey() As Boolean
     hasKey = pkey <> vbNullString And _
         pkey <> cNull And _
         (hasChildren Or Not isArrayMember) And Not pFake
 End Function
+
 Public Function needsCurly() As Boolean
     needsCurly = hasKey And Not isArrayRoot
     If hasChildren Then
         needsCurly = pChildren(1).hasKey
     End If
-    
 End Function
 
 Public Function needsSquare() As Boolean
-
     needsSquare = isArrayRoot
-
 End Function
+
 Public Function stringify(Optional blf As Boolean) As String
     stringify = serialize(blf)
 End Function
+
 Public Function serialize(Optional blf As Boolean = False) As String
 ' make a JSON string of this structure
   Dim t As cStringChunker
@@ -521,9 +542,11 @@ Public Function serialize(Optional blf As Boolean = False) As String
  
   serialize = t.content
 End Function
+
 Public Property Get needsIndent() As Boolean
     needsIndent = needsCurly Or needsSquare
 End Property
+
 Public Function recurseSerialize(job As cJobject, Optional soFar As cStringChunker = Nothing, _
                 Optional blf As Boolean = False) As cStringChunker
   Dim s As String, jo As cJobject, t As cStringChunker
@@ -595,6 +618,7 @@ End Function
 Public Property Get longestFullKey() As Long
     longestFullKey = clongestFullKey(root)
 End Property
+
 Public Function clone() As cJobject
     Dim cj As cJobject
     Set cj = New cJobject
@@ -602,6 +626,7 @@ Public Function clone() As cJobject
     cj.clearParent
     Set clone = cj
 End Function
+
 Public Function arrayAppend(arrJob As cJobject) As cJobject
     Dim j As cJobject
     For Each j In arrJob.children
@@ -609,6 +634,7 @@ Public Function arrayAppend(arrJob As cJobject) As cJobject
     Next j
     Set arrayAppend = Me
 End Function
+
 Public Function mergeArrayOfJobs() As cJobject
     Dim job As cJobject, head As cJobject, jo As cJobject
     
@@ -631,6 +657,7 @@ Public Function mergeArrayOfJobs() As cJobject
     
     Set mergeArrayOfJobs = head
 End Function
+
 Public Function extractAndBlowArrayOfJobs() As cJobject
     Dim job As cJobject, newArray As cJobject, jo As cJobject, head As cJobject, joc As cJobject
     
@@ -658,6 +685,7 @@ Public Function extractAndBlowArrayOfJobs() As cJobject
     
     Set extractAndBlowArrayOfJobs = newArray
 End Function
+
 Public Function replaceBranch(byThis As cJobject) As cJobject
     
     Debug.Assert Not parent Is Nothing
@@ -686,6 +714,7 @@ Public Function replaceBranch(byThis As cJobject) As cJobject
 
 
 End Function
+
 Public Function merge(mergeThisIntoMe As cJobject) As cJobject
     ' merge this cjobject with another
     ' items in merged with are replaced with items in Me
@@ -711,8 +740,8 @@ Public Function merge(mergeThisIntoMe As cJobject) As cJobject
        p.merge cj
     Next cj
     Set merge = Me
-
 End Function
+
 Public Function remove() As cJobject
     ' removes a branch
     Dim cj As cJobject, p As cJobject, i As Long
@@ -730,6 +759,7 @@ Public Function remove() As cJobject
     Set remove = parent
 
 End Function
+
 Public Function attach(attachment As cJobject) As cJobject
     ' continue with another cjobject at this branch, but keep the same key
 
@@ -747,6 +777,7 @@ Public Function attach(attachment As cJobject) As cJobject
 
     Set attach = Me
 End Function
+
 Public Function append(appendThisToMe As cJobject) As cJobject
     ' append another object to me
     Dim cj As cJobject, p As cJobject
@@ -767,6 +798,7 @@ Public Function append(appendThisToMe As cJobject) As cJobject
     Next cj
     Set append = Me
 End Function
+
 Public Property Get depth(Optional l As Long = 0) As Long
     Dim jo As cJobject
     l = l + 1
@@ -775,6 +807,7 @@ Public Property Get depth(Optional l As Long = 0) As Long
     Next jo
     depth = l
 End Property
+
 Private Function clongestFullKey(job As cJobject, Optional soFar As Long = 0) As Long
     Dim jo As cJobject
     Dim l As Long
@@ -787,9 +820,11 @@ Private Function clongestFullKey(job As cJobject, Optional soFar As Long = 0) As
     End If
     clongestFullKey = l
 End Function
+
 Public Property Get formatData(Optional bDebug As Boolean = False) As String
     formatData = cformatdata(root, , bDebug)
 End Property
+
 Private Function cformatdata(job As cJobject, Optional soFar As String = "", Optional bDebug As Boolean = False) As String
     Dim jo As cJobject, ji As cJobject
     Dim s As String
@@ -805,6 +840,7 @@ Private Function cformatdata(job As cJobject, Optional soFar As String = "", Opt
 
     cformatdata = s
 End Function
+
 Private Function itemFormat(jo As cJobject, Optional bDebug As Boolean = False) As String
     Dim s As String
     s = jo.fullKey & Space(longestFullKey + 4 - Len(jo.fullKey)) _

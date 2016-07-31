@@ -82,31 +82,28 @@ Public Function bracket(s As String) As String
 End Function
 
 Public Function escapeify(s As String) As String
-    escapeify = _
+    escapeify = Replace( _
                     Replace( _
                         Replace( _
                             Replace( _
-                                Replace( _
-                                    s, q, "\" & q), _
+                                Replace(s, "\", "\\"), _
+                                    q, "\" & q), _
                                 "%", "\" & "%"), _
                             ">", "\>"), _
                         "<", "\<")
-    
-
-    
+    'If s <> escapeify Then Debug.Print escapeify
 End Function
 
 Public Function unEscapify(s As String) As String
-    unEscapify = _
+    unEscapify = Replace( _
                     Replace( _
                         Replace( _
                             Replace( _
-                                Replace( _
-                                    s, "\" & q, q), _
+                                Replace(s, "\" & q, q), _
                                  "\" & "%", "%"), _
                              "\>", ">"), _
-                         "\<", "<")
-    
+                         "\<", "<"), _
+                    "\\", "\")
 End Function
 
 Public Function UTF16To8(ByVal UTF16 As String) As String
@@ -191,14 +188,14 @@ Function Base64Encode(sText)
     oNode.DataType = "bin.base64"
     oNode.nodeTypedValue = Stream_StringToBinary(sText)
     ' function inserts line feeds so we need to get rid of them
-    Base64Encode = Replace(oNode.Text, vbLf, "")
+    Base64Encode = Replace(oNode.text, vbLf, "")
     Set oNode = Nothing
     Set oXML = Nothing
 End Function
 'Stream_StringToBinary Function
 '2003 Antonin Foller, http://www.motobit.com
 'Text - string parameter To convert To binary data
-Function Stream_StringToBinary(Text)
+Function Stream_StringToBinary(text)
   Const adTypeText = 2
   Const adTypeBinary = 1
 
@@ -214,7 +211,7 @@ Function Stream_StringToBinary(Text)
 
   'Open the stream And write text/string data To the object
   BinaryStream.Open
-  BinaryStream.WriteText Text
+  BinaryStream.WriteText text
 
   'Change stream type To binary
   BinaryStream.Position = 0
@@ -398,11 +395,11 @@ Function SaveConfig(sFileName As String, sname As String, _
   
   ' add this workbook's path if not specified
   If Not IsFullName(sFileName) Then
-    sFile = ThisWorkbook.path & "\" & sFileName
-    sXFile = ThisWorkbook.path & "\X" & sFileName
+    sFile = ActiveProject.Path & PathSeparator & sFileName
+    sXFile = ActiveProject.Path & PathSeparator & "X" & sFileName
   Else
     sFile = sFileName
-    sXFile = FullNameToPath(sFileName) & "\X" & FullNameToFileName(sFileName)
+    sXFile = FullNameToPath(sFileName) & PathSeparator & "X" & FullNameToFileName(sFileName)
   End If
   
   ' open text file to read settings
@@ -448,7 +445,7 @@ Function GetConfig(sFile As String, sname As String, _
   
   ' add this workbook's path if not specified
   If Not IsFullName(sFile) Then
-    sFile = ThisWorkbook.path & "\" & sFile
+    sFile = ActiveProject.Path & PathSeparator & sFile
   End If
   
   ' open text file to read settings
@@ -474,7 +471,7 @@ Public Sub DebugLog(sLogEntry As String)
   Dim iFile As Integer
   Dim sDirectory As String
   
-  sDirectory = ThisWorkbook.path & "\debuglog" & Format$(Now, "YYMMDD") & ".txt"
+  sDirectory = ActiveProject.Path & "\debuglog" & Format$(Now, "YYMMDD") & ".txt"
 
   iFile = FreeFile
 
@@ -546,5 +543,163 @@ Private Function Get_Alphabet(ByVal intNumber As Integer) As String
     End If
     result = result & Strings.Trim(Chr((intNumber Mod 26) + 64))
     Get_Alphabet = result
+End Function
+
+
+'Returns Randon number between two integers
+Public Function Randbetween(a As Double, b As Double) As Double
+    Randomize
+    Randbetween = Int(Rnd() * (b - a + 1) + a)
+End Function
+
+'Returns Hex Number with specified lenght
+Public Function DEC2HEX(a As Double, b As Integer) As String
+    DEC2HEX = Replace(Space(b - Len(Hex(a))), " ", "0") & Hex(a)
+End Function
+
+' Return an pseud guid number
+' link = http://stackoverflow.com/questions/7031347/how-can-i-generate-guids-in-excel
+Public Function genGuid() As String
+'=CONCATENATE(DEC2HEX(RANDBETWEEN(0;4294967295);8);"-";DEC2HEX(RANDBETWEEN(0;65535);4);"-";DEC2HEX(RANDBETWEEN(16384;20479);4);"-";DEC2HEX(RANDBETWEEN(32768;49151);4);"-";DEC2HEX(RANDBETWEEN(0;65535);4);DEC2HEX(RANDBETWEEN(0;4294967295);8))
+    Dim Guid As String
+    Guid = DEC2HEX(Randbetween(0, 4294967295#), 8)
+    Guid = Guid & "-" & DEC2HEX(Randbetween(0, 65535), 4)
+    Guid = Guid & "-" & DEC2HEX(Randbetween(16384, 20479), 4)
+    Guid = Guid & "-" & DEC2HEX(Randbetween(32768, 49151), 4)
+    Guid = Guid & "-" & DEC2HEX(Randbetween(0, 65535), 4)
+    Guid = Guid & DEC2HEX(Randbetween(0, 4294967295#), 8)
+    genGuid = Guid
+End Function
+
+Sub forceTaskID()
+    Dim MyTask As Task
+    CustomFieldRename pjCustomTaskText30, "UUID"
+    For Each MyTask In ActiveProject.Tasks
+        'Debug.Print MyTask.GetField(pjTaskText30)
+        If getTaskID(MyTask) = "" Then
+            setTaskID MyTask
+        End If
+    Next
+End Sub
+
+Public Function getTaskbyID(MyProject As Project, TaskID As String) As Task
+    Dim MyTask As Task
+    For Each MyTask In MyProject.Tasks
+        If isSomething(MyTask) Then
+            If getTaskID(MyTask) = TaskID Then
+                Set getTaskbyID = MyTask
+                Exit Function
+            End If
+        End If
+    Next
+    Set MyTask = MyProject.ProjectSummaryTask
+    If getTaskID(MyTask) = TaskID Then
+        Set getTaskbyID = MyTask
+        Exit Function
+    End If
+    Set getTaskbyID = Nothing
+End Function
+
+Public Function getTaskID(MyTask As Task) As String
+    Dim TaskID As String
+    TaskID = MyTask.GetField(pjTaskText30)
+    If TaskID = "" Then
+        setTaskID MyTask, genGuid
+        TaskID = MyTask.GetField(pjTaskText30)
+    End If
+    getTaskID = TaskID
+End Function
+
+Private Sub setTaskID(MyTask As Task, Optional Guid As String = vbNullString)
+    If Guid = vbNullString Then
+        MyTask.SetField pjTaskText30, genGuid
+    Else
+        MyTask.SetField pjTaskText30, Guid
+    End If
+End Sub
+
+Public Function getTaskCols() As cJobject
+    Dim Cols As New cJobject
+    With Cols.Init(Nothing).addArray
+        .add("UUID (pjTaskText30)", pjTaskText30).add "read-only", True
+        .add("pjTaskGuid", pjTaskGuid).add "read-only", True
+        .add("pjTaskUniqueID", pjTaskUniqueID).add "read-only", True
+        .add("pjTaskID", pjTaskID).add "read-only", True
+        .add("pjTaskWBS", pjTaskWBS).add "read-only", True
+        .add("pjTaskName", pjTaskName).add "read-only", True
+        .add("pjTaskSummary", pjTaskSummary).add "read-only", True
+        .add("pjTaskOutlineNumber", pjTaskOutlineNumber).add "read-only", True
+        .add("pjTaskOutlineLevel", pjTaskOutlineLevel).add "read-only", True
+        .add("pjTaskDuration", pjTaskDuration).add "read-only", False           'Read-only for summary tasks
+        .add("pjTaskStart", pjTaskStart).add "read-only", True
+        .add("pjTaskFinish", pjTaskFinish).add "read-only", True
+        .add("pjTaskPercentComplete", pjTaskPercentComplete).add "read-only", True
+        .add("pjTaskPercentWorkComplete", pjTaskPercentWorkComplete).add "read-only", True
+        .add("pjTaskPhysicalPercentComplete", pjTaskPhysicalPercentComplete).add "read-only", True
+        .add("pjTaskConstraintDate", pjTaskConstraintDate).add "read-only", True
+        .add("pjTaskConstraintType", pjTaskConstraintType).add "read-only", True
+        .add("pjTaskCalendar", pjTaskCalendar).add "read-only", True
+        .add("pjTaskCreated", pjTaskCreated).add "read-only", True
+        .add("pjTaskDeadline", pjTaskDeadline).add "read-only", True
+        .add("pjTaskEffortDriven", pjTaskEffortDriven).add "read-only", True
+        .add("pjTaskEstimated", pjTaskEstimated).add "read-only", True
+        .add("pjTaskFixedCost", pjTaskFixedCost).add "read-only", True
+        .add("pjTaskFixedDuration", pjTaskFixedDuration).add "read-only", True
+        .add("pjTaskMilestone", pjTaskMilestone).add "read-only", True
+        .add("pjTaskParentTask", pjTaskParentTask).add "read-only", True
+        .add("pjTaskWBSPredecessors", pjTaskWBSPredecessors).add "read-only", True
+        .add("pjTaskWBSSuccessors", pjTaskWBSSuccessors).add "read-only", True
+        .add("pjTaskType", pjTaskType).add "read-only", True
+    End With
+    Set getTaskCols = Cols
+End Function
+
+Public Function getTaskField(MyTask As Task, FieldID As Long) As Variant
+    Select Case FieldID
+        Case pjTaskSummary
+            getTaskField = MyTask.Summary
+        Case pjTaskDuration
+            getTaskField = MyTask.Duration 'in minutes
+        Case pjTaskStart
+            getTaskField = Date2Serial(MyTask.start)
+        Case pjTaskFinish
+            getTaskField = Date2Serial(MyTask.Finish)
+        Case pjTaskCreated
+            getTaskField = Date2Serial(MyTask.Created)
+        Case pjTaskDeadline
+            getTaskField = Date2Serial(MyTask.Deadline)
+        Case pjTaskConstraintDate
+            getTaskField = Date2Serial(MyTask.ConstraintDate)
+        Case pjTaskConstraintDate
+            getTaskField = Date2Serial(MyTask.ConstraintDate)
+        Case pjTaskFixedCost
+            getTaskField = MyTask.FixedCost
+        Case pjTaskEstimated
+            getTaskField = MyTask.Estimated
+        Case pjTaskEffortDriven
+            getTaskField = MyTask.EffortDriven
+        Case pjTaskFixedDuration
+            getTaskField = (MyTask.Type = pjFixedDuration)
+        Case pjTaskType
+            getTaskField = MyTask.Type
+        Case pjTaskParentTask
+            getTaskField = getTaskID(MyTask.OutlineParent)
+        Case Else
+            getTaskField = MyTask.GetField(FieldID)
+    End Select
+End Function
+
+Public Function Date2Serial(d As Variant) As Variant
+    Dim serial As Double
+    Dim text As String
+    
+    On Error GoTo errorHandler
+    serial = CDbl(d)
+    Date2Serial = serial
+    Exit Function
+    
+errorHandler:
+    text = CStr(d)
+    Date2Serial = text
 End Function
 
