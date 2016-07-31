@@ -36,4 +36,4 @@ TODO: write more stuff here
 
 Wiki
 ------ 
-Take a look at our wiki at https://github.com/vanaware/drivepm/wiki
+Take a look at our wiki at https://github.com/vanaware/drivepm/wiki for more information
