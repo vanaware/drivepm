@@ -631,6 +631,25 @@ Public Function getResourcebyID(MyProject As Project, ResourceID As String) As R
     Set getResourcebyID = Nothing
 End Function
 
+Public Function getAssignmentbyID(MyProject As Project, TaskID As String, ResourceID As String) As Assignment
+    Dim MyTask As Task
+    Dim MyResource As Resource
+    Dim MyAssignment As Assignment
+    Set MyTask = getTaskbyID(MyProject, TaskID)
+    
+    For Each MyAssignment In MyTask.Assignments
+        If isSomething(MyAssignment) Then
+            Set MyResource = MyAssignment.Resource
+            If getResourceID(MyResource) = ResourceID Then
+                Set getAssignmentbyID = MyAssignment
+                Exit Function
+            End If
+        End If
+    Next
+
+    Set getAssignmentbyID = Nothing
+End Function
+
 Public Function getTaskID(MyTask As Task) As String
     Dim TaskID As String
     TaskID = MyTask.GetField(pjTaskText30)
@@ -773,6 +792,28 @@ Public Function getResourceField(MyResource As Resource, FieldID As Long) As Var
             getResourceField = MyResource.StandardRate
         Case Else
             getResourceField = MyResource.GetField(FieldID)
+    End Select
+End Function
+
+Public Function getAssignmentCols() As cJobject
+    Dim Cols As New cJobject
+    'TODO
+    With Cols.Init(Nothing).addArray
+        .add("UUID (pjResourceText30)", pjResourceText30).add "read-only", True
+        .add("pjResourceGuid", pjResourceGuid).add "read-only", True
+    End With
+    Set getAssignmentCols = Cols
+End Function
+
+Public Function getAssignmentField(MyAssignment As Assignment, FieldID As Long) As Variant
+    'TODO
+    Select Case FieldID
+        Case pjResourceCreated
+            getResourceField = Date2Serial(MyResource.Created)
+        Case pjResourceStandardRate
+            getResourceField = MyAssignment.StandardRate
+        Case Else
+            getResourceField = MyAssignment.GetField(FieldID)
     End Select
 End Function
 

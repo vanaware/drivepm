@@ -380,6 +380,30 @@ Public Sub setResource(MyProject As Project, ResourceID As String)
     Cols.tearDown
 End Sub
 
+Public Sub setAssignment(MyProject As Project, TaskID As String, ResourceID As String)
+    Const table = "Assignments"
+    Dim Cols As New cJobject
+    Dim MyResource As Resource
+    Dim MyTask As Task
+    Dim Col As cJobject
+    Set Cols = getAssignmentCols
+    
+    If Not tableExists(table) Then
+        With addTable(table).add.addArray
+            For Each Col In Cols.children
+                .add , Col.Key
+            Next
+        End With
+    End If
+    Set MyAssignment = getAssignmentbyID(MyProject, TaskID, ResourceID)
+    With getTable(table).add.addArray
+        For Each Col In Cols.children
+            .add , getAssignmentField(MyAssignment, Col.value)
+        Next
+    End With
+    Cols.tearDown
+End Sub
+
 Public Sub setProject(MyProject As Project)
     Const table = "Project"
     

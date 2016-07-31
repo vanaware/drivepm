@@ -101,13 +101,22 @@ Sub TesteProject()
     Dim MyResource As Resource
     Dim sheetAccess As New cSheetsV4
     Dim result As New cJobject
+    Dim MyAssignment As Assignment
     
     sheetAccess.setAuthName("sheets").setSheetId (getMySheetId())
     sheetAccess.setProject ActiveProject
     
     sheetAccess.setTask ActiveProject, getTaskID(ActiveProject.ProjectSummaryTask)
     For Each MyTask In ActiveProject.Tasks
-        If isSomething(MyTask) Then sheetAccess.setTask ActiveProject, getTaskID(MyTask)
+        If isSomething(MyTask) Then
+            sheetAccess.setTask ActiveProject, getTaskID(MyTask)
+            For Each MyAssignment In MyTask.Assignments
+                If isSomething(MyAssignment) Then
+                    Set MyResource = MyAssignment.Resource
+                    sheetAccess.setAssignment , getTaskID(MyTask), getResourceID(MyResource)
+                End If
+            Next
+        End If
     Next
     
     For Each MyResource In ActiveProject.Resources
@@ -121,3 +130,5 @@ Sub TesteProject()
     sheetAccess.TablesTeardown
     Set sheetAccess = Nothing
 End Sub
+
+
