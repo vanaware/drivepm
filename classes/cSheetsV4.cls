@@ -115,6 +115,10 @@ Public Function setTables(cJob As cJobject) As cSheetsV4
     Set setTables = Me
 End Function
 
+Public Sub TablesTeardown()
+    Tables.tearDown
+End Sub
+
 Public Function backupTables() As cJobject
     Dim payload As New cJobject
     ' add missing sheets
@@ -316,7 +320,6 @@ Private Function urlExecute(urlTail As String, _
     Set urlExecute = result
     'Debug.Print "URL EXECUTE RESULT"
     'Debug.Print (result.stringify)
-    
 End Function
 
 Private Sub Class_Initialize()
@@ -351,6 +354,30 @@ Public Sub setTask(MyProject As Project, TaskID As String)
             .add , getTaskField(MyTask, Col.value)
         Next
     End With
+    Cols.tearDown
+End Sub
+
+Public Sub setResource(MyProject As Project, ResourceID As String)
+    Const table = "Resources"
+    Dim Cols As New cJobject
+    Dim MyResource As Resource
+    Dim Col As cJobject
+    Set Cols = getResourceCols
+    
+    If Not tableExists(table) Then
+        With addTable(table).add.addArray
+            For Each Col In Cols.children
+                .add , Col.Key
+            Next
+        End With
+    End If
+    Set MyResource = getResourcebyID(MyProject, ResourceID)
+    With getTable(table).add.addArray
+        For Each Col In Cols.children
+            .add , getResourceField(MyResource, Col.value)
+        Next
+    End With
+    Cols.tearDown
 End Sub
 
 Public Sub setProject(MyProject As Project)

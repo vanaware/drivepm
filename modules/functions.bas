@@ -571,15 +571,33 @@ Public Function genGuid() As String
     genGuid = Guid
 End Function
 
-Sub forceTaskID()
+Sub forceUUID()
     Dim MyTask As Task
+    Dim MyResource As Resource
+    
     CustomFieldRename pjCustomTaskText30, "UUID"
+    CustomFieldRename pjCustomResourceText30, "UUID"
+    
+    Set MyTask = ActiveProject.ProjectSummaryTask
+    If getTaskID(MyTask) = "" Then setTaskID MyTask
     For Each MyTask In ActiveProject.Tasks
         'Debug.Print MyTask.GetField(pjTaskText30)
-        If getTaskID(MyTask) = "" Then
-            setTaskID MyTask
+        If isSomething(MyTask) Then
+            If getTaskID(MyTask) = "" Then
+                setTaskID MyTask
+            End If
         End If
     Next
+ 
+    For Each MyResource In ActiveProject.Resources
+        'Debug.Print MyTask.GetField(pjTaskText30)
+        If isSomething(MyResource) Then
+            If getResourceID(MyResource) = "" Then
+                setResourceID MyResource
+            End If
+        End If
+    Next
+    
 End Sub
 
 Public Function getTaskbyID(MyProject As Project, TaskID As String) As Task
@@ -600,6 +618,19 @@ Public Function getTaskbyID(MyProject As Project, TaskID As String) As Task
     Set getTaskbyID = Nothing
 End Function
 
+Public Function getResourcebyID(MyProject As Project, ResourceID As String) As Resource
+    Dim MyResource As Resource
+    For Each MyResource In MyProject.Resources
+        If isSomething(MyResource) Then
+            If getResourceID(MyResource) = ResourceID Then
+                Set getResourcebyID = MyResource
+                Exit Function
+            End If
+        End If
+    Next
+    Set getResourcebyID = Nothing
+End Function
+
 Public Function getTaskID(MyTask As Task) As String
     Dim TaskID As String
     TaskID = MyTask.GetField(pjTaskText30)
@@ -610,11 +641,29 @@ Public Function getTaskID(MyTask As Task) As String
     getTaskID = TaskID
 End Function
 
+Public Function getResourceID(MyResource As Resource) As String
+    Dim ResourceID As String
+    ResourceID = MyResource.GetField(pjResourceText30)
+    If ResourceID = "" Then
+        setResourceID MyResource, genGuid
+        ResourceID = MyResource.GetField(pjResourceText30)
+    End If
+    getResourceID = ResourceID
+End Function
+
 Private Sub setTaskID(MyTask As Task, Optional Guid As String = vbNullString)
     If Guid = vbNullString Then
         MyTask.SetField pjTaskText30, genGuid
     Else
         MyTask.SetField pjTaskText30, Guid
+    End If
+End Sub
+
+Private Sub setResourceID(MyResource As Resource, Optional Guid As String = vbNullString)
+    If Guid = vbNullString Then
+        MyResource.SetField pjResourceText30, genGuid
+    Else
+        MyResource.SetField pjResourceText30, Guid
     End If
 End Sub
 
@@ -625,31 +674,32 @@ Public Function getTaskCols() As cJobject
         .add("pjTaskGuid", pjTaskGuid).add "read-only", True
         .add("pjTaskUniqueID", pjTaskUniqueID).add "read-only", True
         .add("pjTaskID", pjTaskID).add "read-only", True
-        .add("pjTaskWBS", pjTaskWBS).add "read-only", True
-        .add("pjTaskName", pjTaskName).add "read-only", True
         .add("pjTaskSummary", pjTaskSummary).add "read-only", True
         .add("pjTaskOutlineNumber", pjTaskOutlineNumber).add "read-only", True
         .add("pjTaskOutlineLevel", pjTaskOutlineLevel).add "read-only", True
+        .add("pjTaskParentTask", pjTaskParentTask).add "read-only", True
+        .add("pjTaskWBS", pjTaskWBS).add "read-only", True
+        .add("pjTaskName", pjTaskName).add "read-only", True
         .add("pjTaskDuration", pjTaskDuration).add "read-only", False           'Read-only for summary tasks
+        .add("pjTaskEstimated", pjTaskEstimated).add "read-only", True
+        .add("pjTaskUniquePredecessors", pjTaskUniquePredecessors).add "read-only", True
+        .add("pjTaskUniqueSuccessors", pjTaskUniqueSuccessors).add "read-only", True
         .add("pjTaskStart", pjTaskStart).add "read-only", True
         .add("pjTaskFinish", pjTaskFinish).add "read-only", True
-        .add("pjTaskPercentComplete", pjTaskPercentComplete).add "read-only", True
-        .add("pjTaskPercentWorkComplete", pjTaskPercentWorkComplete).add "read-only", True
-        .add("pjTaskPhysicalPercentComplete", pjTaskPhysicalPercentComplete).add "read-only", True
+        .add("pjTaskCreated", pjTaskCreated).add "read-only", True
+        .add("pjTaskDeadline", pjTaskDeadline).add "read-only", True
         .add("pjTaskConstraintDate", pjTaskConstraintDate).add "read-only", True
         .add("pjTaskConstraintType", pjTaskConstraintType).add "read-only", True
         .add("pjTaskCalendar", pjTaskCalendar).add "read-only", True
-        .add("pjTaskCreated", pjTaskCreated).add "read-only", True
-        .add("pjTaskDeadline", pjTaskDeadline).add "read-only", True
-        .add("pjTaskEffortDriven", pjTaskEffortDriven).add "read-only", True
-        .add("pjTaskEstimated", pjTaskEstimated).add "read-only", True
+        .add("pjTaskPercentComplete", pjTaskPercentComplete).add "read-only", True
+        .add("pjTaskPercentWorkComplete", pjTaskPercentWorkComplete).add "read-only", True
+        .add("pjTaskPhysicalPercentComplete", pjTaskPhysicalPercentComplete).add "read-only", True
+        .add("pjTaskUpdateNeeded", pjTaskUpdateNeeded).add "read-only", True
         .add("pjTaskFixedCost", pjTaskFixedCost).add "read-only", True
+        .add("pjTaskEffortDriven", pjTaskEffortDriven).add "read-only", True
+        .add("pjTaskType", pjTaskType).add "read-only", True
         .add("pjTaskFixedDuration", pjTaskFixedDuration).add "read-only", True
         .add("pjTaskMilestone", pjTaskMilestone).add "read-only", True
-        .add("pjTaskParentTask", pjTaskParentTask).add "read-only", True
-        .add("pjTaskWBSPredecessors", pjTaskWBSPredecessors).add "read-only", True
-        .add("pjTaskWBSSuccessors", pjTaskWBSSuccessors).add "read-only", True
-        .add("pjTaskType", pjTaskType).add "read-only", True
     End With
     Set getTaskCols = Cols
 End Function
@@ -684,8 +734,45 @@ Public Function getTaskField(MyTask As Task, FieldID As Long) As Variant
             getTaskField = MyTask.Type
         Case pjTaskParentTask
             getTaskField = getTaskID(MyTask.OutlineParent)
+        Case pjTaskUpdateNeeded
+            getTaskField = MyTask.UpdateNeeded
+        Case pjTaskMilestone
+            getTaskField = MyTask.Milestone
+        Case pjTaskPercentComplete
+            getTaskField = MyTask.PercentComplete
+        Case pjTaskPercentWorkComplete
+            getTaskField = MyTask.PercentWorkComplete
+        Case pjTaskPhysicalPercentComplete
+            getTaskField = MyTask.PhysicalPercentComplete
         Case Else
             getTaskField = MyTask.GetField(FieldID)
+    End Select
+End Function
+
+Public Function getResourceCols() As cJobject
+    Dim Cols As New cJobject
+    With Cols.Init(Nothing).addArray
+        .add("UUID (pjResourceText30)", pjResourceText30).add "read-only", True
+        .add("pjResourceGuid", pjResourceGuid).add "read-only", True
+        .add("pjResourceUniqueID", pjResourceUniqueID).add "read-only", True
+        .add("pjResourceID", pjResourceID).add "read-only", True
+        .add("pjResourceName", pjResourceName).add "read-only", True
+        .add("pjResourceBaseCalendar", pjResourceBaseCalendar).add "read-only", True
+        .add("pjResourceCreated", pjResourceCreated).add "read-only", True
+        .add("pjResourceStandardRate", pjResourceStandardRate).add "read-only", True
+        
+    End With
+    Set getResourceCols = Cols
+End Function
+
+Public Function getResourceField(MyResource As Resource, FieldID As Long) As Variant
+    Select Case FieldID
+        Case pjResourceCreated
+            getResourceField = Date2Serial(MyResource.Created)
+        Case pjResourceStandardRate
+            getResourceField = MyResource.StandardRate
+        Case Else
+            getResourceField = MyResource.GetField(FieldID)
     End Select
 End Function
 

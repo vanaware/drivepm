@@ -35,8 +35,7 @@ End Sub
 
 
 Public Sub teste()
-    Dim sheetAccess As cSheetsV4
-    Set sheetAccess = New cSheetsV4
+    Dim sheetAccess As New cSheetsV4
     Dim result As New cJobject
     
     sheetAccess.setAuthName("sheets").setSheetId (getMySheetId())
@@ -90,10 +89,16 @@ Public Sub teste()
     'sheetAccess.removeTable ("teste")
     Debug.Print sheetAccess.getTables.stringify
 
+    
+    result.tearDown
+    sheetAccess.TablesTeardown
+    Set sheetAccess = Nothing
+
 End Sub
 
-Sub TesteTask()
+Sub TesteProject()
     Dim MyTask As Task
+    Dim MyResource As Resource
     Dim sheetAccess As New cSheetsV4
     Dim result As New cJobject
     
@@ -105,7 +110,14 @@ Sub TesteTask()
         If isSomething(MyTask) Then sheetAccess.setTask ActiveProject, getTaskID(MyTask)
     Next
     
+    For Each MyResource In ActiveProject.Resources
+        If isSomething(MyResource) Then sheetAccess.setResource ActiveProject, getResourceID(MyResource)
+    Next
+    
     'Debug.Print sheetAccess.getTables.stringify
     Set result = sheetAccess.backupTables()
-        
+    
+    result.tearDown
+    sheetAccess.TablesTeardown
+    Set sheetAccess = Nothing
 End Sub
