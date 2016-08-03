@@ -252,7 +252,7 @@ End Sub
 Private Sub Class_Terminate()
     Set pIeOB = Nothing
 End Sub
-Public Sub tearDown()
+Public Sub Teardown()
     If Not pIeOB Is Nothing Then
         kill
         Set pIeOB = Nothing

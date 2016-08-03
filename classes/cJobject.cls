@@ -252,7 +252,7 @@ Public Function deleteChild(childName As String) As cJobject
                 job.childIndex = job.childIndex - 1
             End If
         Next job
-        Target.tearDown
+        Target.Teardown
     End If
     Set deleteChild = Me
 End Function
@@ -710,7 +710,7 @@ Public Function replaceBranch(byThis As cJobject) As cJobject
     Set replaceBranch = byThis
     
     ' kill the previous
-    Me.tearDown
+    Me.Teardown
 
 
 End Function
@@ -1371,11 +1371,11 @@ Private Sub Class_Initialize()
     pIndex = 1
     Set pChildren = New Collection
 End Sub
-Public Sub tearDown()
+Public Sub Teardown()
     Dim cj As cJobject
     If Not pChildren Is Nothing Then
         For Each cj In pChildren
-            cj.tearDown
+            cj.Teardown
         Next cj
     End If
     Set pParent = Nothing

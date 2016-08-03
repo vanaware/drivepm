@@ -261,20 +261,20 @@ Private Function generatePhaseParameters(whichPhase As String) As String
 End Function
 
 '" release up memory - should be called when done
-Public Function tearDown() As cOauth2
+Public Function Teardown() As cOauth2
     If (Not pPackage Is Nothing) Then
-        pPackage.tearDown
+        pPackage.Teardown
         Set pPackage = Nothing
     End If
     If (Not pDialog Is Nothing) Then
-        pDialog.tearDown
+        pDialog.Teardown
         Set pDialog = Nothing
     End If
     If (Not pCb Is Nothing) Then
-        pCb.tearDown
+        pCb.Teardown
         Set pCb = Nothing
     End If
-    Set tearDown = Me
+    Set Teardown = Me
 End Function
 
 '"---- encryption ----
@@ -348,7 +348,7 @@ Private Function googlePackage(Optional consolePackage As cJobject = Nothing) As
 
     
     Set googlePackage = package
-    If (consolePackage Is Nothing) Then job.tearDown
+    If (consolePackage Is Nothing) Then job.Teardown
     
 End Function
 Private Sub addFromOther(c As cJobject, p As cJobject, k As String, Optional ok As String = vbNullString)

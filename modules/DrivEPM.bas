@@ -33,102 +33,17 @@ Public Sub RunOnce()
 End Sub
 
 
-
-Public Sub teste()
-    Dim sheetAccess As New cSheetsV4
-    Dim result As New cJobject
-    
-    sheetAccess.setAuthName("sheets").setSheetId (getMySheetId())
-    
-    'Debug.Print sheetAccess.getTables.stringify
-    With sheetAccess.addTable("Teste3!a1:z1000")
-        With .add.addArray
-            .add , "teste 1 - linha 1"
-            .add , "teste 2 - linha 1"
-        End With
-        With .add.addArray
-            .add , "teste 1 - linha 2"
-            .add , "teste 2 - linha 2"
-        End With
-    End With
-    'Debug.Print sheetAccess.getTables.stringify
-
-    sheetAccess.fixTablesName
-    'Debug.Print sheetAccess.getTables.stringify
-    
-    With sheetAccess.getTable("Teste3")
-        With .add.addArray
-            .add , "teste 1 - linha 3"
-            .add , "teste 2 - linha 3"
-        End With
-        With .add.addArray
-            .add , "teste 1 - linha 4"
-            .add , "teste 2 - linha 4"
-        End With
-    End With
-
-    'Debug.Print sheetAccess.getTables.stringify
-    
-    With sheetAccess.addTable("Teste2")
-        With .add.addArray
-            .add , "teste2 1 - linha 1"
-            .add , "teste2 2 - linha 1"
-        End With
-        With .add.addArray
-            .add , "teste2 1 - linha 2"
-            .add , "teste2 2 - linha 2"
-        End With
-    End With
-    Debug.Print sheetAccess.getTables.stringify
-    
-
-    Set result = sheetAccess.backupTables()
-    
-    Set result = sheetAccess.restoreTables()
-    
-    'sheetAccess.removeTable ("teste")
-    Debug.Print sheetAccess.getTables.stringify
-
-    
-    result.tearDown
-    sheetAccess.TablesTeardown
-    Set sheetAccess = Nothing
-
-End Sub
-
 Sub TesteProject()
-    Dim MyTask As Task
-    Dim MyResource As Resource
-    Dim sheetAccess As New cSheetsV4
-    Dim result As New cJobject
-    Dim MyAssignment As Assignment
+
+    Dim MyProject As New cProject
+
+    MyProject.ActivePrj = ActiveProject
+    MyProject.pushtoTables
+    MyProject.backupTables
     
-    sheetAccess.setAuthName("sheets").setSheetId (getMySheetId())
-    sheetAccess.setProject ActiveProject
-    
-    sheetAccess.setTask ActiveProject, getTaskID(ActiveProject.ProjectSummaryTask)
-    For Each MyTask In ActiveProject.Tasks
-        If isSomething(MyTask) Then
-            sheetAccess.setTask ActiveProject, getTaskID(MyTask)
-            For Each MyAssignment In MyTask.Assignments
-                If isSomething(MyAssignment) Then
-                    Set MyResource = MyAssignment.Resource
-                    sheetAccess.setAssignment , getTaskID(MyTask), getResourceID(MyResource)
-                End If
-            Next
-        End If
-    Next
-    
-    For Each MyResource In ActiveProject.Resources
-        If isSomething(MyResource) Then sheetAccess.setResource ActiveProject, getResourceID(MyResource)
-    Next
-    
-    'Debug.Print sheetAccess.getTables.stringify
-    Set result = sheetAccess.backupTables()
-    
-    result.tearDown
-    sheetAccess.TablesTeardown
-    Set sheetAccess = Nothing
+    'Free Memory
+    MyProject.Teardown
+    Set MyProject = Nothing
 End Sub
 
 
