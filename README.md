@@ -27,7 +27,7 @@ How to use
 ------ 
 
 + open project file with macros enabled and at VBA for application references add these: Microsoft Internet Controls, Microsoft XML
-+ add classes: cBrowser, cJobject, cOauth2, cSheetsV4 and cStringChunker
++ add classes: cBrowser, cJobject, cOauth2, cProject, cSheetsV4 and cStringChunker
 + add modules: functions, drivEPM
 + config a project at google developer console and create oauth client_id and client_secret
 + setup VBA procedure RunOnce at drivEPM module with SheetID, ClientID, ClientSecret and uncomment these lines to run at least once
