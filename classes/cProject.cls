@@ -15,6 +15,7 @@ Private pTables As cJobject
 Private pAssignmentCols As cJobject
 Private pResourceCols As cJobject
 Private pTaskCols As cJobject
+Private pTaskDependencyCols As cJobject
 
 Public Property Get ActivePrj() As Project
     Set ActivePrj = pActivePrj
@@ -37,6 +38,7 @@ Private Sub Class_Initialize()
     Set pAssignmentCols = setAssignmentCols()
     Set pResourceCols = setResourceCols()
     Set pTaskCols = setTaskCols()
+    Set pTaskDependencyCols = setTaskDependencyCols()
     
 End Sub
 
@@ -117,6 +119,7 @@ Public Sub pushtoTables()
     Dim MyTask As Task
     Dim MyResource As Resource
     Dim MyAssignment As Assignment
+    Dim MyTaskDependency As TaskDependency
     Dim result As New cJobject
     
     setProject
@@ -125,6 +128,9 @@ Public Sub pushtoTables()
         If isSomething(MyTask) Then
             '// Push Tasks to Tables
             setTask getTaskID(MyTask)
+            For Each MyTaskDependency In MyTask.TaskDependencies
+                If isSomething(MyTaskDependency) And MyTask <> MyTaskDependency.From Then setTaskDependency getTaskID(MyTask), getTaskID(MyTaskDependency.From)
+            Next
             For Each MyAssignment In MyTask.Assignments
                 If isSomething(MyAssignment) Then
                     Set MyResource = MyAssignment.Resource
@@ -144,7 +150,6 @@ End Sub
 
 Private Sub setTask(TaskID As String)
     Const table = "Tasks"
-    Dim Cols As New cJobject
     Dim MyTask As Task
     Dim Col As cJobject
     
@@ -165,7 +170,6 @@ End Sub
 
 Private Sub setResource(ResourceID As String)
     Const table = "Resources"
-    Dim Cols As New cJobject
     Dim MyResource As Resource
     Dim Col As cJobject
     
@@ -187,9 +191,6 @@ End Sub
 
 Private Sub setAssignment(TaskID As String, ResourceID As String)
     Const table = "Assignments"
-    Dim Cols As New cJobject
-    Dim MyResource As Resource
-    Dim MyTask As Task
     Dim MyAssignment As Assignment
     Dim Col As cJobject
     
@@ -208,6 +209,28 @@ Private Sub setAssignment(TaskID As String, ResourceID As String)
     End With
 
 End Sub
+
+Private Sub setTaskDependency(ParentTaskID As String, FromTaskID As String)
+    Const table = "TaskDependencies"
+    Dim MyTaskDependency As TaskDependency
+    Dim Col As cJobject
+    
+    If Not tableExists(table) Then
+        With addTable(table).add.addArray
+            For Each Col In pTaskDependencyCols.children
+                .add , Col.Key
+            Next
+        End With
+    End If
+    Set MyTaskDependency = getTaskDependencybyID(ParentTaskID, FromTaskID)
+    With getTable(table).add.addArray
+        For Each Col In pTaskDependencyCols.children
+            .add , getTaskDependencyField(MyTaskDependency, Col.value)
+        Next
+    End With
+
+End Sub
+
 
 Private Sub setProject()
     Const table = "Project"
@@ -376,6 +399,26 @@ Private Function getAssignmentbyID(TaskID As String, ResourceID As String) As As
         End If
     Next
     Set getAssignmentbyID = Nothing
+End Function
+
+
+Private Function getTaskDependencybyID(ParentTaskID As String, FromTaskID As String) As TaskDependency
+    Dim MyParent As Task
+    Dim MyFrom As Task
+    Dim MyTaskDependency As TaskDependency
+    
+    Set MyParent = getTaskbyID(ParentTaskID)
+    
+    For Each MyTaskDependency In MyParent.TaskDependencies
+        If isSomething(MyTaskDependency) Then
+            Set MyFrom = MyTaskDependency.From
+            If getTaskID(MyFrom) = FromTaskID Then
+                Set getTaskDependencybyID = MyTaskDependency
+                Exit Function
+            End If
+        End If
+    Next
+    Set getTaskDependencybyID = Nothing
 End Function
 
 Private Function getTaskID(MyTask As Task) As String
@@ -598,6 +641,38 @@ Private Function getAssignmentField(MyAssignment As Assignment, FieldID As Long)
     End Select
 End Function
 
+Private Function setTaskDependencyCols() As cJobject
+    Dim Cols As New cJobject
+    With Cols.Init(Nothing).addArray
+        .add("Task UUID (pjTaskText30)", pjTaskText30).add "read-only", True
+        .add("From UUID (pjTaskText30)", 1).add "read-only", False
+        .add("pjTaskName", pjTaskName).add "read-only", True
+        .add("FromTaskName", 2).add "read-only", True
+        .add("Type", 3).add "read-only", False
+        .add("Lag", 4).add "read-only", False
+        .add("LagType", 5).add "read-only", False
+    End With
+    Set setTaskDependencyCols = Cols
+End Function
+
+Private Function getTaskDependencyField(MyTaskDependency As TaskDependency, FieldID As Long) As Variant
+    Select Case FieldID
+        Case pjTaskText30
+            getTaskDependencyField = MyTaskDependency.parent.GetField(FieldID)
+        Case 1
+            getTaskDependencyField = MyTaskDependency.From.GetField(pjTaskText30)
+        Case 2
+            getTaskDependencyField = MyTaskDependency.From.GetField(pjTaskName)
+        Case 3
+            getTaskDependencyField = MyTaskDependency.Type
+        Case 4
+            getTaskDependencyField = MyTaskDependency.Lag
+        Case 5
+            getTaskDependencyField = MyTaskDependency.LagType
+        Case Else
+            getTaskDependencyField = MyTaskDependency.parent.GetField(FieldID)
+    End Select
+End Function
 
 Public Sub forceUUID()
     Dim MyTask As Task
