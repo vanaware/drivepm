@@ -16,6 +16,9 @@ Private pAssignmentCols As cJobject
 Private pResourceCols As cJobject
 Private pTaskCols As cJobject
 Private pTaskDependencyCols As cJobject
+Private pTimePhasedAssignmentCols As cJobject
+Private pTimePhasedTaskCols As cJobject
+Private pTimePhasedResourceCols As cJobject
 
 Public Property Get ActivePrj() As Project
     Set ActivePrj = pActivePrj
@@ -39,6 +42,9 @@ Private Sub Class_Initialize()
     Set pResourceCols = setResourceCols()
     Set pTaskCols = setTaskCols()
     Set pTaskDependencyCols = setTaskDependencyCols()
+    Set pTimePhasedAssignmentCols = setTimePhasedAssignmentCols()
+    Set pTimePhasedTaskCols = setTimePhasedTaskCols()
+    Set pTimePhasedResourceCols = setTimePhasedResourceCols()
     
 End Sub
 
@@ -128,6 +134,7 @@ Public Sub pushtoTables()
         If isSomething(MyTask) Then
             '// Push Tasks to Tables
             setTask getTaskID(MyTask)
+            setTimePhasedTask getTaskID(MyTask)
             For Each MyTaskDependency In MyTask.TaskDependencies
                 If isSomething(MyTaskDependency) And MyTask <> MyTaskDependency.From Then setTaskDependency getTaskID(MyTask), getTaskID(MyTaskDependency.From)
             Next
@@ -136,6 +143,7 @@ Public Sub pushtoTables()
                     Set MyResource = MyAssignment.Resource
                     '// Push Assignments to Tables
                     setAssignment getTaskID(MyTask), getResourceID(MyResource)
+                    setTimePhasedAssignment getTaskID(MyTask), getResourceID(MyResource)
                 End If
             Next
         End If
@@ -143,7 +151,10 @@ Public Sub pushtoTables()
     
     For Each MyResource In pActivePrj.Resources
         '// Push Resources to Tables
-        If isSomething(MyResource) Then setResource getResourceID(MyResource)
+        If isSomething(MyResource) Then
+            setResource getResourceID(MyResource)
+            setTimePhasedResource getResourceID(MyResource)
+        End If
     Next
     
 End Sub
@@ -161,11 +172,13 @@ Private Sub setTask(TaskID As String)
         End With
     End If
     Set MyTask = getTaskbyID(TaskID)
-    With getTable(table).add.addArray
-        For Each Col In pTaskCols.children
-            .add , getTaskField(MyTask, Col.value)
-        Next
-    End With
+    If isSomething(MyTask) Then
+        With getTable(table).add.addArray
+            For Each Col In pTaskCols.children
+                .add , getTaskField(MyTask, Col.value)
+            Next
+        End With
+    End If
 End Sub
 
 Private Sub setResource(ResourceID As String)
@@ -181,12 +194,13 @@ Private Sub setResource(ResourceID As String)
         End With
     End If
     Set MyResource = getResourcebyID(ResourceID)
-    With getTable(table).add.addArray
-        For Each Col In pResourceCols.children
-            .add , getResourceField(MyResource, Col.value)
-        Next
-    End With
-
+    If isSomething(MyResource) Then
+        With getTable(table).add.addArray
+            For Each Col In pResourceCols.children
+                .add , getResourceField(MyResource, Col.value)
+            Next
+        End With
+    End If
 End Sub
 
 Private Sub setAssignment(TaskID As String, ResourceID As String)
@@ -202,12 +216,172 @@ Private Sub setAssignment(TaskID As String, ResourceID As String)
         End With
     End If
     Set MyAssignment = getAssignmentbyID(TaskID, ResourceID)
-    With getTable(table).add.addArray
-        For Each Col In pAssignmentCols.children
-            .add , getAssignmentField(MyAssignment, Col.value)
-        Next
-    End With
+    If isSomething(MyAssignment) Then
+        With getTable(table).add.addArray
+            For Each Col In pAssignmentCols.children
+                .add , getAssignmentField(MyAssignment, Col.value)
+            Next
+        End With
+    End If
 
+End Sub
+
+Private Sub setTimePhasedAssignment(TaskID As String, ResourceID As String)
+    Const table = "TimePhasedAssignment"
+    Dim MyAssignment As Assignment
+    Dim MyTimeScaleValue As TimeScaleValue
+    Dim MyTimeScaleValues As TimeScaleValues
+    Dim Col As cJobject
+    Dim TimeScaleUnit As Long
+    Dim DataType As Long
+
+    If Not tableExists(table) Then
+        With addTable(table).add.addArray
+            For Each Col In pTimePhasedAssignmentCols.children
+                .add , Col.Key
+            Next
+        End With
+    End If
+    
+    Set MyAssignment = getAssignmentbyID(TaskID, ResourceID)
+    If isSomething(MyAssignment) Then
+        DataType = PjAssignmentTimescaledData.pjAssignmentTimescaledWork
+        TimeScaleUnit = PjTimescaleUnit.pjTimescaleMonths
+        Set MyTimeScaleValues = MyAssignment.TimeScaleData(pActivePrj.ProjectSummaryTask.start, pActivePrj.ProjectSummaryTask.Finish, DataType, TimeScaleUnit, 1)
+        For Each MyTimeScaleValue In MyTimeScaleValues
+            With getTable(table).add.addArray
+                For Each Col In pTimePhasedAssignmentCols.children
+                        Select Case Col.value
+                            Case pjTaskText30
+                                .add , MyAssignment.Task.GetField(pjTaskText30)
+                            Case pjResourceText30
+                                .add , MyAssignment.Resource.GetField(pjResourceText30)
+                            Case 1
+                                .add , Date2Serial(MyTimeScaleValue.StartDate)
+                            Case 2
+                                .add , Date2Serial(MyTimeScaleValue.EndDate)
+                            Case 3
+                                .add , MyTimeScaleValue.Index
+                            Case 4
+                                .add , DataType
+                            Case 5
+                                .add , TimeScaleUnit
+                            Case 6
+                                .add , IIf(MyTimeScaleValue.value = "", 0, MyTimeScaleValue.value)
+                            Case Else
+                                If Col.value < 200000000 And Col.value > 188000000 Then
+                                    .add , MyAssignment.Task.GetField(Col.value)
+                                ElseIf Col.value < 206000000 And Col.value > 200000000 Then
+                                    .add , MyAssignment.Resource.GetField(Col.value)
+                                Else
+                                    .add , ""
+                                End If
+                        End Select
+                Next
+            End With
+        Next MyTimeScaleValue
+    End If
+End Sub
+
+Private Sub setTimePhasedTask(TaskID As String)
+    Const table = "TimePhasedTask"
+    Dim MyTask As Task
+    Dim MyTimeScaleValue As TimeScaleValue
+    Dim MyTimeScaleValues As TimeScaleValues
+    Dim Col As cJobject
+    Dim TimeScaleUnit As Long
+    Dim DataType As Long
+
+    If Not tableExists(table) Then
+        With addTable(table).add.addArray
+            For Each Col In pTimePhasedTaskCols.children
+                .add , Col.Key
+            Next
+        End With
+    End If
+    
+    Set MyTask = getTaskbyID(TaskID)
+    If isSomething(MyTask) Then
+        DataType = PjTaskTimescaledData.pjTaskTimescaledCost
+        TimeScaleUnit = PjTimescaleUnit.pjTimescaleMonths
+        Set MyTimeScaleValues = MyTask.TimeScaleData(pActivePrj.ProjectSummaryTask.start, pActivePrj.ProjectSummaryTask.Finish, DataType, TimeScaleUnit, 1)
+        
+        '#TODO: Falta descontar valores das Tarefas ou Atribuições filhas senão fica acumulado
+        
+        For Each MyTimeScaleValue In MyTimeScaleValues
+            With getTable(table).add.addArray
+                For Each Col In pTimePhasedTaskCols.children
+                        Select Case Col.value
+                            Case pjTaskText30
+                                .add , MyTask.GetField(pjTaskText30)
+                            Case 1
+                                .add , Date2Serial(MyTimeScaleValue.StartDate)
+                            Case 2
+                                .add , Date2Serial(MyTimeScaleValue.EndDate)
+                            Case 3
+                                .add , MyTimeScaleValue.Index
+                            Case 4
+                                .add , DataType
+                            Case 5
+                                .add , TimeScaleUnit
+                            Case 6
+                                .add , IIf(MyTimeScaleValue.value = "", 0, MyTimeScaleValue.value)
+                            Case Else
+                                .add , MyTask.GetField(Col.value)
+                        End Select
+                Next
+            End With
+        Next MyTimeScaleValue
+    End If
+End Sub
+
+Private Sub setTimePhasedResource(ResourceID As String)
+    Const table = "TimePhasedResource"
+    Dim MyResource As Resource
+    Dim MyTimeScaleValue As TimeScaleValue
+    Dim MyTimeScaleValues As TimeScaleValues
+    Dim Col As cJobject
+    Dim TimeScaleUnit As Long
+    Dim DataType As Long
+
+    If Not tableExists(table) Then
+        With addTable(table).add.addArray
+            For Each Col In pTimePhasedResourceCols.children
+                .add , Col.Key
+            Next
+        End With
+    End If
+    
+    Set MyResource = getResourcebyID(ResourceID)
+    If isSomething(MyResource) Then
+        DataType = PjResourceTimescaledData.pjResourceTimescaledWork
+        TimeScaleUnit = PjTimescaleUnit.pjTimescaleMonths
+        Set MyTimeScaleValues = MyResource.TimeScaleData(pActivePrj.ProjectSummaryTask.start, pActivePrj.ProjectSummaryTask.Finish, DataType, TimeScaleUnit, 1)
+        For Each MyTimeScaleValue In MyTimeScaleValues
+            With getTable(table).add.addArray
+                For Each Col In pTimePhasedResourceCols.children
+                        Select Case Col.value
+                            Case pjResourceText30
+                                .add , MyResource.GetField(pjResourceText30)
+                            Case 1
+                                .add , Date2Serial(MyTimeScaleValue.StartDate)
+                            Case 2
+                                .add , Date2Serial(MyTimeScaleValue.EndDate)
+                            Case 3
+                                .add , MyTimeScaleValue.Index
+                            Case 4
+                                .add , DataType
+                            Case 5
+                                .add , TimeScaleUnit
+                            Case 6
+                                .add , IIf(MyTimeScaleValue.value = "", 0, MyTimeScaleValue.value)
+                            Case Else
+                                .add , MyResource.GetField(Col.value)
+                        End Select
+                Next
+            End With
+        Next MyTimeScaleValue
+    End If
 End Sub
 
 Private Sub setTaskDependency(ParentTaskID As String, FromTaskID As String)
@@ -223,11 +397,13 @@ Private Sub setTaskDependency(ParentTaskID As String, FromTaskID As String)
         End With
     End If
     Set MyTaskDependency = getTaskDependencybyID(ParentTaskID, FromTaskID)
-    With getTable(table).add.addArray
-        For Each Col In pTaskDependencyCols.children
-            .add , getTaskDependencyField(MyTaskDependency, Col.value)
-        Next
-    End With
+    If isSomething(MyTaskDependency) Then
+        With getTable(table).add.addArray
+            For Each Col In pTaskDependencyCols.children
+                .add , getTaskDependencyField(MyTaskDependency, Col.value)
+            Next
+        End With
+    End If
 
 End Sub
 
@@ -400,7 +576,6 @@ Private Function getAssignmentbyID(TaskID As String, ResourceID As String) As As
     Next
     Set getAssignmentbyID = Nothing
 End Function
-
 
 Private Function getTaskDependencybyID(ParentTaskID As String, FromTaskID As String) As TaskDependency
     Dim MyParent As Task
@@ -672,6 +847,53 @@ Private Function getTaskDependencyField(MyTaskDependency As TaskDependency, Fiel
         Case Else
             getTaskDependencyField = MyTaskDependency.parent.GetField(FieldID)
     End Select
+End Function
+
+Private Function setTimePhasedAssignmentCols() As cJobject
+    Dim Cols As New cJobject
+    With Cols.Init(Nothing).addArray
+        .add("Task UUID (pjTaskText30)", pjTaskText30).add "read-only", True
+        .add("Resource UUID (pjResourceText30)", pjResourceText30).add "read-only", True
+        .add("pjTaskName", pjTaskName).add "read-only", True
+        .add("pjResourceName", pjResourceName).add "read-only", True
+        .add("StartDate", 1).add "read-only", True
+        .add("EndDate", 2).add "read-only", False
+        .add("Index", 3).add "read-only", False
+        .add("Type", 4).add "read-only", False
+        .add("TimeScaleUnit", 5).add "read-only", False
+        .add("Value", 6).add "read-only", False
+    End With
+    Set setTimePhasedAssignmentCols = Cols
+End Function
+
+Private Function setTimePhasedTaskCols() As cJobject
+    Dim Cols As New cJobject
+    With Cols.Init(Nothing).addArray
+        .add("Task UUID (pjTaskText30)", pjTaskText30).add "read-only", True
+        .add("pjTaskName", pjTaskName).add "read-only", True
+        .add("StartDate", 1).add "read-only", True
+        .add("EndDate", 2).add "read-only", False
+        .add("Index", 3).add "read-only", False
+        .add("Type", 4).add "read-only", False
+        .add("TimeScaleUnit", 5).add "read-only", False
+        .add("Value", 6).add "read-only", False
+    End With
+    Set setTimePhasedTaskCols = Cols
+End Function
+
+Private Function setTimePhasedResourceCols() As cJobject
+    Dim Cols As New cJobject
+    With Cols.Init(Nothing).addArray
+        .add("Resource UUID (pjResourceText30)", pjResourceText30).add "read-only", True
+        .add("pjResourceName", pjResourceName).add "read-only", True
+        .add("StartDate", 1).add "read-only", True
+        .add("EndDate", 2).add "read-only", False
+        .add("Index", 3).add "read-only", False
+        .add("Type", 4).add "read-only", False
+        .add("TimeScaleUnit", 5).add "read-only", False
+        .add("Value", 6).add "read-only", False
+    End With
+    Set setTimePhasedResourceCols = Cols
 End Function
 
 Public Sub forceUUID()
